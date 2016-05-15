@@ -9,23 +9,39 @@
 
 #define CHANNEL 3  //Anzahl Wasserkanäle
 
+const byte pulsePin = 2;
+
+int giessen = -1;
+
 class Flowmeter {
-private:
-  int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
-  int pulseCount;
-public:
-  void setCalibrationFactor(int);
-  void resetFlowMeter(void);
-  int getVolume(void);
-  void pulse();
+  private:
+    int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
+    int pulseCount;
+  public:
+    static int flag;
+    void setCalibrationFactor(int);
+    int getPulseCount();
+    void resetFlowMeter(void);
+    int getVolume(void);
+    void pulse();
 } flow;
+
+enum flowStatus {IDLE, BUSY};
+int Flowmeter::flag = IDLE;
 
 void Flowmeter::setCalibrationFactor(int cf) {
   calibrationFactor = cf;
+  EEPROM.put(0, calibrationFactor);
 }
+
+int Flowmeter::getPulseCount() {
+  return pulseCount;
+}
+
 
 void Flowmeter::resetFlowMeter() {
   pulseCount = 0;
+  flag = IDLE;
 }
 
 int Flowmeter::getVolume() {
@@ -37,22 +53,19 @@ void Flowmeter::pulse() {
 }
 
 class Magnetvalves {
-private:
-  int pin;
-  int targetV;
-  int currV;
-  char plant[10];
-
-  static int flagOn;
-public:
-  void setVolumeTarget(int v);
-  int readVolumeTarget(void);
-  char * getPlant(void);
-  int getPin(void);
-  void dosing(void);
-  int getCurrentVolume(void);
+  private:
+    int pin;
+    int targetV;
+    int currV;
+    char plant[10];
+  public:
+    void setVolumeTarget(int v);
+    int readVolumeTarget(void);
+    char * getPlant(void);
+    int getPin(void);
+    int dosing(void);
+    int getCurrentVolume(void);
 }  valve[CHANNEL];
-
 
 void Magnetvalves::setVolumeTarget(int v) {
   targetV = v;
@@ -70,19 +83,23 @@ int Magnetvalves::getPin() {
   return pin;
 }
 
-void Magnetvalves::dosing(void) {
-  if (flagOn == 0) {
+int Magnetvalves::dosing(void) {
+  if (flow.flag == IDLE) {
     flow.resetFlowMeter();
     digitalWrite(this->pin, HIGH);
-    this->flagOn = 1;
+    flow.flag = BUSY;
+    return 0;
+  } else {
+    return 2;
   }
 
   if (flow.getVolume() < this->targetV) {
-    void Display();
+    return 0;
   } else
   {
     digitalWrite(this->pin, LOW);
-    this->flagOn = 0;
+    flow.flag = IDLE;
+    return 1;
   }
 }
 
@@ -90,9 +107,6 @@ int Magnetvalves::getCurrentVolume() {
   return flow.getVolume();
 }
 
-
-
-/* Uhrzeit aus RTC */
 
 void setup() {
 
@@ -103,29 +117,41 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Starte Setup");
 
-  /*  Arduino-Pins für Tasten mit Pull-Up Widerstände konfigurieren */
 
   /*  Konfigurationsdaten aus EEPROM auslesen                       */
   readEeprom();
 
-  /*  Einstieg in Kalibrierungs-Modus für Flow-Meter wenn Taste X   */
-  /*  beim Einschalten gedrückt                                     */
+  /* Pin for flow meter pulse and interrupt */
+  pinMode(pulsePin, INPUT_PULLUP);
+  attachInterrupt(pulsePin, interuptPulse, FALLING);
 
 }
 
 
 void loop() {
 
-  /* Uhrzeit aus RTC ziehen  */
+  if (/* es ist Zeit zum giessen */1) {
+    giessen = 0;
+  }
 
-  /* Interupt-Pin 1 wird bei jedem Puls des FlowMeters ausgelöst */
+  /* Check ob gegossen werden muss */
+  if (giessen > -1) {
+    if (valve[giessen].dosing() == 1) {
+      giessen++;
+    }
+    statusDisplay();
+  }
 
-  /* Interupt pin 2 führt zur zum Menu - Einstellung */
-
+  /* Check ob alles gegossen */
+  if (giessen == CHANNEL+1) {
+    giessen = -1;
   }
 
 
-/***********  Setup Routines  **********/
+
+}
+
+
 void DisplaySetup() {
   display.begin(); // init done
   display.setContrast(50); // you can change the contrast around to adapt the display for the best viewing!
@@ -138,7 +164,7 @@ void DisplaySetup() {
   display.display();
 }
 
-void readEeprom() {
+int readEeprom() {
   int vol;
   int cf;
   int eeAdress = 0;
@@ -152,20 +178,26 @@ void readEeprom() {
     valve[i].setVolumeTarget(vol);
     eeAdress += sizeof(int);
   }
-
+  return 0;
 }
 
-/***********  Set Volume Routines  **********
-int EepromWrite(int i){
-  int eeAdress = 0 + sizeof(float) + i*sizeof(int); // "vorspulen"
-  EEPROM.put(eeAdress, valve[i].getVolumeTarget());
+int writeEeprom(void){
+  int eeAdress = 0 + sizeof(int); // "vorspulen" nach calibration factor
+  for (int i = 0; i < CHANNEL; i++) {
+    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
+    eeAdress += sizeof(int);
+  }
   eeAdress = 0;
   return 0;
 }
 
 
-***********  Flow-Meter Calibration  **********
+/***********  Flow-Meter Calibration  **********
+
 void calibration() {
+  float cf;
+  float exactAmount = 10;
+
   display.clearDisplay();
   display.print("Tomatron v0.1   "); display.println("Calibration");
   display.println();
@@ -174,37 +206,36 @@ void calibration() {
   display.println("Genaue Menge auswiegen!");
   display.display(); // show screen
 
-  float exakteMenge = 10.0;
-  float cf;
 
-  DisplayCalibration(exakteMenge);
+  valve[0].setVolumeTarget(10);
+  while (!valve[0].dosing()) {
+  //  calibrationDisplay(valve[0].getCurrentVolume());
+  }
+
 
   // Einstellung exakteMenge über Up/Down-Taster, Bestätigung durch Enter
+  calibrationDisplay(exactAmount);
+  while (digitalRead(4)) {
 
-  while ((PIND & BUTTON0)) { // solange Arduino-Pin 7 auf HIGH ->Shift-Taste nicht gedrückt
-
-    if (!(PIND & BUTTON1)) {	// wenn Arduino-Pin 6 auf LOW -> Einstell-Taste gedrückt
-      exakteMenge += 0.1;
-      DisplayCalibration(exakteMenge);
+    if (digitalRead(5)) {	// wenn Arduino-Pin 6 auf LOW -> Einstell-Taste gedrückt
+      exactAmount += 0.1;
+      calibrationDisplay(exactAmount);
       delay(200);
     }
 
-    if (!(PIND & BUTTON1)) {
-      exakteMenge -= 0.1;
-      DisplayCalibration(exakteMenge);
+    if (digitalRead(6)) {
+      exactAmount -= 0.1;
+      calibrationDisplay(exactAmount);
       delay(200);
     }
   }
 
   // Berechnung Kalibrierfaktor und speichern im EEPROM *
-  cf = meterPulses / exakteMenge;
+  cf = flow.getPulseCount() / exactAmount;
   flow.setCalibrationFactor(cf);
-  EEPROM.put(0, cf);
-
-  meterPulses = 0;
 }
 
-void DisplayCalibration(float menge) {
+void calibrationDisplay(float menge) {
 
   display.clearDisplay();
   display.setCursor(0,0);
@@ -217,10 +248,10 @@ void DisplayCalibration(float menge) {
   display.display();
 
 }
-*/
+
 
 /***********  Loop Routines  **********/
-void Display() {
+void statusDisplay() {
 
   display.clearDisplay();
 
@@ -236,6 +267,6 @@ void Display() {
 }
 
 
-void InteruptRoutine() {
+void interuptPulse() {
   flow.pulse();
 }
