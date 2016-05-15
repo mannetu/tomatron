@@ -5,29 +5,94 @@
 #include <Arduino.h>
 #include "5110.h"
 #include <EEPROM.h>
-//#include <HardwareSerial.h>
+#include <WIRE.h>       // I2C-Library für RTC-Uhr (z.B. D3231)
+
+#define CHANNEL 3  //Anzahl Wasserkanäle
+
+class Flowmeter {
+private:
+  int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
+  int pulseCount;
+public:
+  void setCalibrationFactor(int);
+  void resetFlowMeter(void);
+  int getVolume(void);
+  void pulse();
+} flow;
+
+void Flowmeter::setCalibrationFactor(int cf) {
+  calibrationFactor = cf;
+}
+
+void Flowmeter::resetFlowMeter() {
+  pulseCount = 0;
+}
+
+int Flowmeter::getVolume() {
+  return (pulseCount / calibrationFactor);
+}
+
+void Flowmeter::pulse() {
+  pulseCount++;
+}
+
+class Magnetvalves {
+private:
+  int pin;
+  int targetV;
+  int currV;
+  char plant[10];
+
+  static int flagOn;
+public:
+  void setVolumeTarget(int v);
+  int readVolumeTarget(void);
+  char * getPlant(void);
+  int getPin(void);
+  void dosing(void);
+  int getCurrentVolume(void);
+}  valve[CHANNEL];
 
 
-#define CHANNEL 3  //Anzahl Gieskanäle
-#define BUTTON0 B01000000   // Arduino-Pin 6  an Arduino-Port D
-#define BUTTON1 B10000000   // Arduino-Pin 7  an Arduino-Port D
-#define BUTTON2
-#define BUTTON3
+void Magnetvalves::setVolumeTarget(int v) {
+  targetV = v;
+}
 
-typedef struct {
-  int volume_soll;
-  int volume_ist;
-  int flow_current;
-} sWater;
-sWater wasser[CHANNEL];
+int Magnetvalves::readVolumeTarget() {
+  return targetV;
+}
 
-/* Uhrzeit */
+char * Magnetvalves::getPlant() {
+  return plant;
+}
+
+int Magnetvalves::getPin() {
+  return pin;
+}
+
+void Magnetvalves::dosing(void) {
+  if (flagOn == 0) {
+    flow.resetFlowMeter();
+    digitalWrite(this->pin, HIGH);
+    this->flagOn = 1;
+  }
+
+  if (flow.getVolume() < this->targetV) {
+    void Display();
+  } else
+  {
+    digitalWrite(this->pin, LOW);
+    this->flagOn = 0;
+  }
+}
+
+int Magnetvalves::getCurrentVolume() {
+  return flow.getVolume();
+}
 
 
-/* Calibration factor for flow-meter = (Pulses / Liter) */
-int calibration_factor;
-int meterPulses;
 
+/* Uhrzeit aus RTC */
 
 void setup() {
 
@@ -35,82 +100,71 @@ void setup() {
   DisplaySetup();
 
   /* Setup Serial for Debug */
-  Serial.begin(9600); Serial.println("Starte Setup");
+  Serial.begin(9600);
+  Serial.println("Starte Setup");
 
   /*  Arduino-Pins für Tasten mit Pull-Up Widerstände konfigurieren */
-  DDRD = DDRD & ~(BUTTON0 | BUTTON1); // Arduino-Pin 6 (Einstell-Taste) und 7 (Shift-Taste) als Input (Bit auf 0) definieren (und andere Pin unangetastet lassen)
-  PORTD = PORTD | (BUTTON0 | BUTTON1); // Pull-Up aktivieren (Bit auf 1)
 
   /*  Konfigurationsdaten aus EEPROM auslesen                       */
-  EepromReadSetup();
+  readEeprom();
 
   /*  Einstieg in Kalibrierungs-Modus für Flow-Meter wenn Taste X   */
   /*  beim Einschalten gedrückt                                     */
 
-  if (PIND & BUTTON0) {
-    void calibration();
-  }
-
 }
-
 
 
 void loop() {
-  /* Interupt wird bei jedem Puls des FlowMeters ausgelöst */
-  interrupts();
 
-  /* Einstellung Wassermenge pro Kanal */
-  if (PIND & BUTTON0) {  // wenn Arduino-Pin 7 gedrückt (auf LOW)
+  /* Uhrzeit aus RTC ziehen  */
+
+  /* Interupt-Pin 1 wird bei jedem Puls des FlowMeters ausgelöst */
+
+  /* Interupt pin 2 führt zur zum Menu - Einstellung */
 
   }
-  /* */
 
 
+/***********  Setup Routines  **********/
+void DisplaySetup() {
+  display.begin(); // init done
+  display.setContrast(50); // you can change the contrast around to adapt the display for the best viewing!
+  display.setTextSize(1);
+  display.setTextColor(BLACK);
+  display.setCursor(0,0);
+  display.display(); // show splashscreen
+  delay(1000);
+  display.clearDisplay();   // clears the screen and buffer
+  display.display();
+}
+
+void readEeprom() {
+  int vol;
+  int cf;
+  int eeAdress = 0;
+
+  EEPROM.get(eeAdress, cf);  // Load calibration factor
+  flow.setCalibrationFactor(cf);
+
+  eeAdress = sizeof(int);
+  for (byte i = 0; i < (CHANNEL); i++) {
+    EEPROM.get(eeAdress, vol);  //
+    valve[i].setVolumeTarget(vol);
+    eeAdress += sizeof(int);
+  }
 
 }
 
-
-/* Ansteuerung Magnetventile */
-void Magnetventil(int channel, int menge) {
-
-  int pin;
-  switch (channel) {
-    case 0: pin = 1; break;
-    case 1: pin = 2; break;
-    case 2: pin = 3; break;
-  }
-
-  digitalWrite(pin, HIGH);
-  while ((meterPulses / calibration_factor) < menge) {
-    wasser[channel].volume_ist = meterPulses / calibration_factor;
-    void Display();
-    delay(1000);
-  }
-
-  digitalWrite(pin, LOW);
-
+/***********  Set Volume Routines  **********
+int EepromWrite(int i){
+  int eeAdress = 0 + sizeof(float) + i*sizeof(int); // "vorspulen"
+  EEPROM.put(eeAdress, valve[i].getVolumeTarget());
+  eeAdress = 0;
+  return 0;
 }
 
 
-/* Ausgabe auf LCD-Display */
-void Display() {
-
-  display.clearDisplay();
-
-  display.print("Tomatron v0.1   "); display.println("xx:xx"); //Uhrzeit
-  display.println();
-  display.print("Tomaten  "); display.print(wasser[1].volume_soll);
-  display.print(" "); display.println(wasser[1].volume_ist);
-  display.print("Paprika  "); display.print(wasser[2].volume_soll);
-  display.print(" "); display.println(wasser[2].volume_ist);
-  display.print("Kanal 3  "); display.print(wasser[3].volume_soll);
-  display.print(" "); display.println(wasser[3].volume_ist);
-
-  display.display(); // show screen
-}
-
-
-/* Calibration of Flow Meter */
+***********  Flow-Meter Calibration  **********
 void calibration() {
   display.clearDisplay();
   display.print("Tomatron v0.1   "); display.println("Calibration");
@@ -120,13 +174,12 @@ void calibration() {
   display.println("Genaue Menge auswiegen!");
   display.display(); // show screen
 
-  Magnetventil(0, 10);
-
   float exakteMenge = 10.0;
+  float cf;
+
   DisplayCalibration(exakteMenge);
 
-
-  /* Einstellung exakteMenge über Drehregler, Bestätigung durch Taste */
+  // Einstellung exakteMenge über Up/Down-Taster, Bestätigung durch Enter
 
   while ((PIND & BUTTON0)) { // solange Arduino-Pin 7 auf HIGH ->Shift-Taste nicht gedrückt
 
@@ -143,10 +196,11 @@ void calibration() {
     }
   }
 
-  calibration_factor = meterPulses / exakteMenge;
+  // Berechnung Kalibrierfaktor und speichern im EEPROM *
+  cf = meterPulses / exakteMenge;
+  flow.setCalibrationFactor(cf);
+  EEPROM.put(0, cf);
 
-  EEPROM.put(0, calibration_factor);
-  
   meterPulses = 0;
 }
 
@@ -163,42 +217,25 @@ void DisplayCalibration(float menge) {
   display.display();
 
 }
+*/
 
+/***********  Loop Routines  **********/
+void Display() {
 
-int EepromSetVolume(int i){
-  int eeAdress = 0 + sizeof(calibration_factor) + i*sizeof(int); // "vorspulen"
-  EEPROM.put(eeAdress, wasser[i].volume_soll);
-  eeAdress = 0;
-  return 0;
+  display.clearDisplay();
+
+  display.print("Tomatron v0.1   "); display.println("xx:xx"); //Uhrzeit
+  display.println();
+
+  for (int i = 0; i < CHANNEL; i++) {
+    display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+    display.print(" "); display.println(valve[i].getCurrentVolume());
+  }
+
+  display.display(); // show screen
 }
 
 
 void InteruptRoutine() {
-
-  meterPulses++;
-
-}
-
-void DisplaySetup() {
-  display.begin(); // init done
-  display.setContrast(50); // you can change the contrast around to adapt the display for the best viewing!
-  display.setTextSize(1);
-  display.setTextColor(BLACK);
-  display.setCursor(0,0);
-  display.display(); // show splashscreen
-  delay(1000);
-  display.clearDisplay();   // clears the screen and buffer
-  display.display();
-}
-
-void EepromReadSetup() {
-  int eeAdress = 0;
-  EEPROM.get(eeAdress, calibration_factor);  // Load calibration factor
-  eeAdress += eeAdress + sizeof(int);
-
-  for (byte i = 0; i < (CHANNEL); i++) {
-    EEPROM.get(eeAdress, wasser[i].volume_soll);  //
-    eeAdress += sizeof(int);
-  }
-
+  flow.pulse();
 }
