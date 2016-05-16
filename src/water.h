@@ -15,8 +15,6 @@ class Flowmeter {
 };
 
 
-
-
 class Magnetvalves {
   private:
     int pin;

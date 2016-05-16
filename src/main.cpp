@@ -10,7 +10,10 @@
 
 #define CHANNEL 3  //Anzahl Wasserkanäle
 
-const byte pulsePin = 2;
+const byte pinFlowMeter = 2;
+const byte pinEnterBtn = 3;
+const byte pinUpBtn = 4;
+const byte pinDownBtn = 5;
 
 int giessen = -1;
 
@@ -23,6 +26,8 @@ void statusDisplay(void);
 void DisplaySetup(void);
 int readEeprom(void);
 void calibrationDisplay(float);
+void setTargetVolumes(void);
+void setVolumeDisplay(int);
 
 
 void setup() {
@@ -37,35 +42,51 @@ void setup() {
   /*  Konfigurationsdaten aus EEPROM auslesen                       */
   readEeprom();
 
+  /* Pin configuration */
+  pinMode(pinEnterBtn, INPUT_PULLUP);
+  pinMode(pinUpBtn, INPUT_PULLUP);
+  pinMode(pinDownBtn, INPUT_PULLUP);
+
   /* Pin for flow meter pulse and interrupt */
-  pinMode(pulsePin, INPUT_PULLUP);
-  attachInterrupt(pulsePin, interuptPulse, FALLING);
+  pinMode(pinFlowMeter, INPUT_PULLUP);
+  attachInterrupt(pinFlowMeter, interuptPulse, FALLING);
 
 }
 
 
 void loop() {
 
+  /* Zeit-Abfrage */
+
+
+
+  /* Giess-Routine */
+
   if (/* es ist Zeit zum giessen */1) {
     giessen = 0;
     flow.resetFlowMeter();
   }
 
-  /* Check ob gegossen werden muss */
+  /* Giessen-Loop */
   if (giessen > -1) {
+
     valve[giessen].setCurrentVolume(flow.getVolume());
+
     if (valve[giessen].dosing() == 1) {
       giessen++;
     }
+
+    if (giessen == CHANNEL+1) {
+      giessen = -1;
+    }
+
     statusDisplay();
   }
 
-  /* Check ob alles gegossen */
-  if (giessen == CHANNEL+1) {
-    giessen = -1;
+  /* Einstellung Giessmengen */
+  if (digitalRead(pinEnterBtn) == 0) {
+    setTargetVolumes();
   }
-
-
 
 }
 
@@ -83,7 +104,7 @@ void DisplaySetup() {
 }
 
 int readEeprom() {
-  int vol;
+  int volTarget;
   int cf;
   int eeAdress = 0;
 
@@ -92,8 +113,8 @@ int readEeprom() {
 
   eeAdress = sizeof(int);
   for (byte i = 0; i < (CHANNEL); i++) {
-    EEPROM.get(eeAdress, vol);  //
-    valve[i].setVolumeTarget(vol);
+    EEPROM.get(eeAdress, volTarget);  //
+    valve[i].setVolumeTarget(volTarget);
     eeAdress += sizeof(int);
   }
   return 0;
@@ -133,15 +154,15 @@ void calibration() {
 
   // Einstellung exakteMenge über Up/Down-Taster, Bestätigung durch Enter
   calibrationDisplay(exactAmount);
-  while (digitalRead(4)) {
+  while (digitalRead(pinEnterBtn)) {
 
-    if (digitalRead(5)) {	// wenn Arduino-Pin 6 auf LOW -> Einstell-Taste gedrückt
+    if (digitalRead(pinUpBtn)) {	// wenn Arduino-Pin 6 auf LOW -> Einstell-Taste gedrückt
       exactAmount += 0.1;
       calibrationDisplay(exactAmount);
       delay(200);
     }
 
-    if (digitalRead(6)) {
+    if (digitalRead(pinDownBtn)) {
       exactAmount -= 0.1;
       calibrationDisplay(exactAmount);
       delay(200);
@@ -187,4 +208,61 @@ void statusDisplay() {
 
 void interuptPulse() {
   flow.pulse();
+}
+
+
+void setTargetVolumes() {
+  int channel = 0;
+  int volNew;
+
+  while (digitalRead(pinEnterBtn)) {
+    if (digitalRead(pinDownBtn) == 0) {
+      channel++;
+      setVolumeDisplay(channel);
+      delay(200);
+    }
+    if (digitalRead(pinUpBtn) == 0) {
+      channel--;
+      setVolumeDisplay(channel);
+      delay(200);
+    }
+  }
+
+  volNew = valve[channel].readVolumeTarget();
+
+  while (digitalRead(pinEnterBtn)) {
+    if (digitalRead(pinDownBtn) == 0) {
+      valve[channel].setVolumeTarget(volNew++);
+      setVolumeDisplay(channel);
+      delay(200);
+    }
+    if (digitalRead(pinUpBtn) == 0) {
+      valve[channel].setVolumeTarget(volNew--);
+      setVolumeDisplay(channel);
+      delay(200);
+    }
+  }
+
+  statusDisplay();
+
+}
+
+void setVolumeDisplay(int ch) {
+
+  display.clearDisplay();
+
+  display.print("Zielvolumen:   "); display.println("xx:xx"); //Uhrzeit
+  display.println();
+
+  for (int i = 0; i < CHANNEL; i++) {
+    if (i == ch) {
+      display.setTextColor(WHITE, BLACK);
+      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+      display.setTextColor(BLACK, WHITE);
+    } else {
+      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+    }
+  }
+
+  display.display(); // show screen
 }
