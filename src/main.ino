@@ -38,7 +38,6 @@ int Flowmeter::getPulseCount() {
   return pulseCount;
 }
 
-
 void Flowmeter::resetFlowMeter() {
   pulseCount = 0;
   flag = IDLE;
@@ -64,6 +63,7 @@ class Magnetvalves {
     char * getPlant(void);
     int getPin(void);
     int dosing(void);
+    int dosing(int);
     int getCurrentVolume(void);
 }  valve[CHANNEL];
 
@@ -88,7 +88,7 @@ int Magnetvalves::dosing(void) {
     flow.resetFlowMeter();
     digitalWrite(this->pin, HIGH);
     flow.flag = BUSY;
-    return 0;
+    return 1;
   } else {
     return 2;
   }
@@ -102,6 +102,29 @@ int Magnetvalves::dosing(void) {
     return 1;
   }
 }
+
+
+int Magnetvalves::dosing(int vol) {
+  if (flow.flag == IDLE) {
+    flow.resetFlowMeter();
+    digitalWrite(this->pin, HIGH);
+    flow.flag = BUSY;
+    return 0;
+  } else {
+    return 2;
+  }
+
+  if (flow.getVolume() < vol) {
+    return 0;
+  } else
+  {
+    digitalWrite(this->pin, LOW);
+    flow.flag = IDLE;
+    return 1;
+  }
+}
+
+
 
 int Magnetvalves::getCurrentVolume() {
   return flow.getVolume();
@@ -192,7 +215,7 @@ int writeEeprom(void){
 }
 
 
-/***********  Flow-Meter Calibration  **********
+/***********  Flow-Meter Calibration  **********/
 
 void calibration() {
   float cf;
@@ -207,8 +230,7 @@ void calibration() {
   display.display(); // show screen
 
 
-  valve[0].setVolumeTarget(10);
-  while (!valve[0].dosing()) {
+  while (!valve[0].dosing(10)) {
   //  calibrationDisplay(valve[0].getCurrentVolume());
   }
 
