@@ -34,7 +34,6 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Starte Setup");
 
-
   /*  Konfigurationsdaten aus EEPROM auslesen                       */
   readEeprom();
 
