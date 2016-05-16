@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include "5110.h"
+#include "water.h"
 #include <EEPROM.h>
 #include <WIRE.h>       // I2C-Library für RTC-Uhr (z.B. D3231)
 
@@ -13,122 +14,15 @@ const byte pulsePin = 2;
 
 int giessen = -1;
 
-class Flowmeter {
-  private:
-    int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
-    int pulseCount;
-  public:
-    static int flag;
-    void setCalibrationFactor(int);
-    int getPulseCount();
-    void resetFlowMeter(void);
-    int getVolume(void);
-    void pulse();
-} flow;
+class Flowmeter flow;
+class Magnetvalves valve[CHANNEL];
 
-enum flowStatus {IDLE, BUSY};
-int Flowmeter::flag = IDLE;
-
-void Flowmeter::setCalibrationFactor(int cf) {
-  calibrationFactor = cf;
-  EEPROM.put(0, calibrationFactor);
-}
-
-int Flowmeter::getPulseCount() {
-  return pulseCount;
-}
-
-void Flowmeter::resetFlowMeter() {
-  pulseCount = 0;
-  flag = IDLE;
-}
-
-int Flowmeter::getVolume() {
-  return (pulseCount / calibrationFactor);
-}
-
-void Flowmeter::pulse() {
-  pulseCount++;
-}
-
-class Magnetvalves {
-  private:
-    int pin;
-    int targetV;
-    int currV;
-    char plant[10];
-  public:
-    void setVolumeTarget(int v);
-    int readVolumeTarget(void);
-    char * getPlant(void);
-    int getPin(void);
-    int dosing(void);
-    int dosing(int);
-    int getCurrentVolume(void);
-}  valve[CHANNEL];
-
-void Magnetvalves::setVolumeTarget(int v) {
-  targetV = v;
-}
-
-int Magnetvalves::readVolumeTarget() {
-  return targetV;
-}
-
-char * Magnetvalves::getPlant() {
-  return plant;
-}
-
-int Magnetvalves::getPin() {
-  return pin;
-}
-
-int Magnetvalves::dosing(void) {
-  if (flow.flag == IDLE) {
-    flow.resetFlowMeter();
-    digitalWrite(this->pin, HIGH);
-    flow.flag = BUSY;
-    return 1;
-  } else {
-    return 2;
-  }
-
-  if (flow.getVolume() < this->targetV) {
-    return 0;
-  } else
-  {
-    digitalWrite(this->pin, LOW);
-    flow.flag = IDLE;
-    return 1;
-  }
-}
-
-
-int Magnetvalves::dosing(int vol) {
-  if (flow.flag == IDLE) {
-    flow.resetFlowMeter();
-    digitalWrite(this->pin, HIGH);
-    flow.flag = BUSY;
-    return 0;
-  } else {
-    return 2;
-  }
-
-  if (flow.getVolume() < vol) {
-    return 0;
-  } else
-  {
-    digitalWrite(this->pin, LOW);
-    flow.flag = IDLE;
-    return 1;
-  }
-}
-
-
-
-int Magnetvalves::getCurrentVolume() {
-  return flow.getVolume();
-}
+/******* Function prototypes *******/
+void interuptPulse(void);
+void statusDisplay(void);
+void DisplaySetup(void);
+int readEeprom(void);
+void calibrationDisplay(float);
 
 
 void setup() {
@@ -155,10 +49,12 @@ void loop() {
 
   if (/* es ist Zeit zum giessen */1) {
     giessen = 0;
+    flow.resetFlowMeter();
   }
 
   /* Check ob gegossen werden muss */
   if (giessen > -1) {
+    valve[giessen].setCurrentVolume(flow.getVolume());
     if (valve[giessen].dosing() == 1) {
       giessen++;
     }
@@ -229,8 +125,9 @@ void calibration() {
   display.println("Genaue Menge auswiegen!");
   display.display(); // show screen
 
-
+  flow.resetFlowMeter();
   while (!valve[0].dosing(10)) {
+    valve[0].setCurrentVolume(flow.getVolume()) ;
   //  calibrationDisplay(valve[0].getCurrentVolume());
   }
 
@@ -282,7 +179,7 @@ void statusDisplay() {
 
   for (int i = 0; i < CHANNEL; i++) {
     display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
-    display.print(" "); display.println(valve[i].getCurrentVolume());
+    display.print(" "); display.println(valve[i].readCurrentVolume());
   }
 
   display.display(); // show screen
