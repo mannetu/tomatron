@@ -2,15 +2,13 @@
 
 #include <Arduino.h>
 #include "water.h"
-#include <EEPROM.h>
 
-int dosingFlag = IDLE;
+statusFlag dosingFlag = IDLE;
 
 /******* Flowmeter Member Functions *******/
 
 void Flowmeter::setCalibrationFactor(int cf) {
   calibrationFactor = cf;
-  EEPROM.put(0, calibrationFactor);
 }
 
 int Flowmeter::getPulseCount() {
@@ -35,6 +33,10 @@ void Flowmeter::pulse() {
 
 void Magnetvalves::setVolumeTarget(int v) {
   targetV = v;
+}
+
+void Magnetvalves::incVolumeTarget(int i) {
+  targetV += i;
 }
 
 int Magnetvalves::readVolumeTarget() {

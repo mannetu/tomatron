@@ -1,6 +1,6 @@
 /* water.h */
 
-enum flowStatus {IDLE, BUSY};
+enum statusFlag {IDLE, BUSY};
 
 class Flowmeter {
   private:
@@ -8,9 +8,9 @@ class Flowmeter {
     int pulseCount;
   public:
     void setCalibrationFactor(int);
-    int getPulseCount();
+    int  getPulseCount();
     void resetFlowMeter(void);
-    int getVolume(void);
+    int  getVolume(void);
     void pulse();
 };
 
@@ -23,12 +23,13 @@ class Magnetvalves {
     char plant[10];
   public:
     static int flag;
-    void setVolumeTarget(int v);
-    int readVolumeTarget(void);
+    void setVolumeTarget(int);
+    void incVolumeTarget(int);
+    int  readVolumeTarget(void);
     char * getPlant(void);
-    int getPin(void);
-    int dosing(void);
-    int dosing(int);
+    int  getPin(void);
+    int  dosing(void);
+    int  dosing(int);
     void setCurrentVolume(int);
-    int readCurrentVolume(void);
+    int  readCurrentVolume(void);
 };
