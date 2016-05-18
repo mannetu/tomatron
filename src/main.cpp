@@ -232,28 +232,32 @@ void calibrationDisplay(double menge) {
 void statusDisplay(int ch) {
 
   display.clearDisplay();
-  //Display      123456789                     01234
-  display.print("Tomatron "); display.println("xx:xx"); //Uhrzeit
-  display.println();
+  display.setCursor(0, 0);
 
   if (ch == -1) {
+    display.print("INAKTIV  "); display.println("xx:xx"); //Uhrzeit
+    display.println();
     for (int i = 0; i < CHANNEL; i++) {
-      display.print(valve[i].getPlant()); display.print (" ");
+      display.print(valve[i].getPlant());
+      display.setCursor(i, 8);
       display.println(valve[i].readVolumeTarget());
     }
-    display.print(" KEINE DOSIERUNG AKTIV ");
     display.display(); // show screen
     return;
   }
 
+  display.print("AKTIV: KANAL "); display.println(ch+1);
+  display.println();
   for (int i = 0; i < CHANNEL; i++) {
     if (i < ch+1) {
-      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
-      display.print(" "); display.print(valve[i].readCurrentVolume()/valve[i].readVolumeTarget());
+      display.print(valve[i].getPlant());
+      display.setCursor(i, 8);
+      display.print(valve[i].readVolumeTarget()); display.setCursor(i, 11);
+      display.print(valve[i].readCurrentVolume()/valve[i].readVolumeTarget());
       display.println(" %%");
       } else {
-        display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
-
+        display.print(valve[i].getPlant()); display.setCursor(i, 9);
+        display.println(valve[i].readVolumeTarget());
       }
     }
   display.display(); // show screen
@@ -302,7 +306,7 @@ void setTargetVolumes() {
 void setTargetDisplay(int ch) {
 
   display.clearDisplay();
-
+  display.setCursor(0, 0);
   display.print("Zielvolumen:   "); display.println("xx:xx"); //Uhrzeit
   display.println();
 
