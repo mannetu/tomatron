@@ -37,9 +37,12 @@ const byte pinValve0 = 4;
 const byte pinValve1 = 5;
 const byte pinValve2 = 6;
 
-// Flag for active watering
-int giessen = 0;
+/* Flag for active watering thread.
+ * Case -1 inactive, case 0, 1, and 2 for active channel    */
+int giessen = -1;
 
+
+/***** Objects *******/
 class Flowmeter flow;
 class Magnetvalves valve[CHANNEL];
 
@@ -48,7 +51,7 @@ class Magnetvalves valve[CHANNEL];
 void displaySetup(void);
 int  readEeprom(void);
 
-void statusDisplay(void);
+void statusDisplay(int);
 void interuptPulse(void);
 
 void setTargetVolumes(void);
@@ -96,24 +99,24 @@ void loop() {
   /* Giess-Routine */
 
   if (/* es ist Zeit zum giessen */1) {
-    giessen = 1;
+    giessen = 0;
     flow.resetFlowMeter();
   }
 
   /* Giessen-Loop */
-  if (giessen > 0) {
+  if (giessen > -1) {
 
-    valve[giessen-1].setCurrentVolume(flow.getVolume());
+    valve[giessen].setCurrentVolume(flow.getVolume());
 
-    if (valve[giessen-1].dosing() == 0) {
+    if (valve[giessen].dosing() == 0) {
       giessen++;
     }
 
     if (giessen > CHANNEL-1) {
-      giessen = 0;
+      giessen = -1;
     }
 
-    statusDisplay();
+    statusDisplay(giessen);
   }
 
   /* Einstellung Giessmengen */
@@ -167,14 +170,16 @@ int writeEeprom(void){
 
 void calibration() {
   float cf;
-  float calVolume = 10;
+  double calVolume = 10;
 
   display.clearDisplay();
+  display.setCursor(0,0);
   //Display        12345678901234
-  display.println("Kalibierung");
+  display.println("Kalibierung:");
   display.println("Taste drücken!");
-  display.println("10L Wasser aus Schlauch 1.");
-  display.println("Genaue Menge auswiegen!");
+  display.println("10L aus V1:");
+  display.println("Genaue Menge");
+  display.println("auswiegen!");
   display.display(); // show screen
 
   while (digitalRead(pinEnterBtn)) {/* Wait on button */ }
@@ -210,35 +215,49 @@ void calibration() {
   EEPROM.put(0, cf);
 }
 
-void calibrationDisplay(float menge) {
-
+void calibrationDisplay(double menge) {
   display.clearDisplay();
   display.setCursor(0,0);
-  display.println("Mit Up/Down-Tasten");
-  display.println("exakte Menge einstellen");
-  display.println("");
-  display.setTextSize(2);
-  display.print(menge); display.println(" L");
+  //Display        12345678901234
+  display.println("Mit +/- Tasten");
+  display.println("10 * Menge");
+  display.println("Enter");
+  display.println();
+  display.setTextSize(1);
+  display.print(menge, 3); display.println(" kg");
   display.setTextSize(1);
   display.display();
-
 }
 
-
-
-void statusDisplay() {
+void statusDisplay(int ch) {
 
   display.clearDisplay();
-
-  display.print("Tomatron v0.1   "); display.println("xx:xx"); //Uhrzeit
+  //Display      123456789                     01234
+  display.print("Tomatron "); display.println("xx:xx"); //Uhrzeit
   display.println();
 
-  for (int i = 0; i < CHANNEL; i++) {
-    display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
-    display.print(" "); display.println(valve[i].readCurrentVolume());
+  if (ch == -1) {
+    for (int i = 0; i < CHANNEL; i++) {
+      display.print(valve[i].getPlant()); display.print (" ");
+      display.println(valve[i].readVolumeTarget());
+    }
+    display.print(" KEINE DOSIERUNG AKTIV ");
+    display.display(); // show screen
+    return;
   }
 
+  for (int i = 0; i < CHANNEL; i++) {
+    if (i < ch+1) {
+      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+      display.print(" "); display.print(valve[i].readCurrentVolume()/valve[i].readVolumeTarget());
+      display.println(" %%");
+      } else {
+        display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+
+      }
+    }
   display.display(); // show screen
+  return;
 }
 
 void interuptPulse() {
@@ -276,7 +295,7 @@ void setTargetVolumes() {
     }
   }
 
-  statusDisplay();
+  statusDisplay(-1);
 
 }
 
