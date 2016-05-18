@@ -1,21 +1,44 @@
 /***********************************************
-*   Tomatron v0.1
-***********************************************/
+ *  Tomatron v0.1
+ *
+ *
+ ***********************************************/
 
 #include <Arduino.h>
-#include "5110.h"
-#include "water.h"
+#define _ArduinoH_
 #include <EEPROM.h>
 #include <WIRE.h>       // I2C-Library für RTC-Uhr (z.B. D3231)
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
+#define _WaterH_
+#include "Water.h"
 
-#define CHANNEL 3  //Anzahl Wasserkanäle
+// Water channels
+#define CHANNEL 3
 
-const byte pinFlowMeter = 2;
-const byte pinEnterBtn = 3;
-const byte pinUpBtn = 4;
-const byte pinDownBtn = 5;
+// Nokia 5110 Display
+// Hardware SPI (faster, but must use certain hardware pins):
+// SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
+// MOSI is LCD DIN - this is pin 11 on an Arduino Uno
+// pin 9 - Data/Command select (D/C)
+// pin 8 - LCD chip select (CS)
+// pin 7 - LCD reset (RST)
+Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7);
 
-int giessen = -1;
+// Pins for Buttons
+const byte pinUpBtn = 0;      // Up/Increase-Button
+const byte pinDownBtn = 1;    // Down/Decrease-Button
+const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
+
+// Pins for FlowMeter and MagneticValves
+const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
+const byte pinValve0 = 4;
+const byte pinValve1 = 5;
+const byte pinValve2 = 6;
+
+// Flag for active watering
+int giessen = 0;
 
 class Flowmeter flow;
 class Magnetvalves valve[CHANNEL];
@@ -48,15 +71,19 @@ void setup() {
   /*  Konfigurationsdaten aus EEPROM auslesen                       */
   readEeprom();
 
-  /* Pin configuration */
-  pinMode(pinEnterBtn, INPUT_PULLUP);
-  pinMode(pinUpBtn, INPUT_PULLUP);
-  pinMode(pinDownBtn, INPUT_PULLUP);
 
   /* Pin for flow meter pulse and interrupt */
   pinMode(pinFlowMeter, INPUT_PULLUP);
   attachInterrupt(pinFlowMeter, interuptPulse, FALLING);
 
+  pinMode(pinValve0, OUTPUT);
+  pinMode(pinValve1, OUTPUT);
+  pinMode(pinValve2, OUTPUT);
+
+  /* Pin configuration */
+  pinMode(pinEnterBtn, INPUT_PULLUP);
+  pinMode(pinUpBtn, INPUT_PULLUP);
+  pinMode(pinDownBtn, INPUT_PULLUP);
 }
 
 
@@ -69,21 +96,21 @@ void loop() {
   /* Giess-Routine */
 
   if (/* es ist Zeit zum giessen */1) {
-    giessen = 0;
+    giessen = 1;
     flow.resetFlowMeter();
   }
 
   /* Giessen-Loop */
-  if (giessen > -1) {
+  if (giessen > 0) {
 
-    valve[giessen].setCurrentVolume(flow.getVolume());
+    valve[giessen-1].setCurrentVolume(flow.getVolume());
 
-    if (valve[giessen].dosing() == 1) {
+    if (valve[giessen-1].dosing() == 0) {
       giessen++;
     }
 
-    if (giessen == CHANNEL+1) {
-      giessen = -1;
+    if (giessen > CHANNEL-1) {
+      giessen = 0;
     }
 
     statusDisplay();
@@ -143,10 +170,10 @@ void calibration() {
   float calVolume = 10;
 
   display.clearDisplay();
-  display.print("Tomatron v0.1   "); display.println("Calibration");
-  display.println();
-  display.println("Nach Tastendruck laufen");
-  display.println("ca. 10L Wasser aus Schlauch 1.");
+  //Display        12345678901234
+  display.println("Kalibierung");
+  display.println("Taste drücken!");
+  display.println("10L Wasser aus Schlauch 1.");
   display.println("Genaue Menge auswiegen!");
   display.display(); // show screen
 
@@ -159,12 +186,6 @@ void calibration() {
   }
 
   // Einstellung exakteMenge über Up/Down-Taster, Bestätigung durch Enter
-  display.clearDisplay();
-  display.print("Tomatron v0.1   "); display.println("Calibration");
-  display.println();
-  display.println("Nach Tastendruck ausgewogene Menge");
-  display.println("einstellen und bestätigen");
-  display.display(); // show screen
 
   calibrationDisplay(valve[0].readCurrentVolume());
 

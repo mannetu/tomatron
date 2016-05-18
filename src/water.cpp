@@ -1,7 +1,12 @@
 /* water.cpp */
 
-#include <Arduino.h>
-#include "water.h"
+#ifndef _ArduinoH_
+  #include <Arduino.h>
+#endif
+
+#ifndef _WaterH_
+  #include "Water.h"
+#endif
 
 statusFlag dosingFlag = IDLE;
 
@@ -56,37 +61,39 @@ int Magnetvalves::dosing(void) {
     digitalWrite(this->pin, HIGH);
     dosingFlag = BUSY;
     return 1;
-  } else {
-    return 2;
   }
 
-  if (currV < this->targetV) {
-    return 0;
-  } else
-  {
-    digitalWrite(this->pin, LOW);
-    dosingFlag = IDLE;
+  if ((dosingFlag == BUSY) && (currV < this->targetV)) {
     return 1;
   }
+
+  if ((dosingFlag == BUSY) && (currV > this->targetV)) {
+    digitalWrite(this->pin, LOW);
+    dosingFlag = IDLE;
+    return 0;
+  }
+
+  return -1;
 }
 
 int Magnetvalves::dosing(int vol) {
   if (dosingFlag == IDLE) {
     digitalWrite(this->pin, HIGH);
     dosingFlag = BUSY;
-    return 0;
-  } else {
-    return 2;
-  }
-
-  if (currV < vol) {
-    return 0;
-  } else
-  {
-    digitalWrite(this->pin, LOW);
-    dosingFlag = IDLE;
     return 1;
   }
+
+  if ((dosingFlag == BUSY) && (currV < vol)) {
+    return 1;
+  }
+
+  if ((dosingFlag == BUSY) && (currV > vol)) {
+    digitalWrite(this->pin, LOW);
+    dosingFlag = IDLE;
+    return 0;
+  }
+
+  return -1;
 }
 
 void Magnetvalves::setCurrentVolume(int vol) {
