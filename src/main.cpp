@@ -7,6 +7,8 @@
 #include <Arduino.h>
 #define _ArduinoH_
 #include <EEPROM.h>
+#include <Time.h>
+//#include <DS3232RTC.h>
 #include <WIRE.h>       // I2C-Library für RTC-Uhr (z.B. D3231)
 #include <SPI.h>
 #include <Adafruit_GFX.h>
@@ -33,13 +35,14 @@ const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
 
 // Pins for FlowMeter and MagneticValves
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
-const byte pinValve0 = 4;
-const byte pinValve1 = 5;
-const byte pinValve2 = 6;
+const byte pinValve[CHANNEL] = {4, 5, 6};
 
 /* Flag for active watering thread.
  * Case -1 inactive, case 0, 1, and 2 for active channel    */
 int giessen = -1;
+// Clock
+int giessenHour = 18;
+int giessenMinute = 30;
 
 
 /***** Objects *******/
@@ -64,26 +67,31 @@ void calibrationDisplay(float);
 /****** Functions *******/
 void setup() {
 
-  /* Setup Display */
-  displaySetup();
-
   /* Setup Serial for Debug */
   Serial.begin(9600);
   Serial.println("Starte Setup");
 
-  /*  Konfigurationsdaten aus EEPROM auslesen                       */
+  /* Setup Clock */
+  setTime(12,00,00,01,05,16);
+
+  /* Setup Display */
+  displaySetup();
+
+  /* Read config data from EEPROM */
   readEeprom();
 
+  /* Pin configuration for flow meter pulse and interrupt */
+  flow.setPin(pinFlowMeter);
+  pinMode(flow.getPin(), INPUT_PULLUP);
+  attachInterrupt(flow.getPin(), interuptPulse, FALLING);
 
-  /* Pin for flow meter pulse and interrupt */
-  pinMode(pinFlowMeter, INPUT_PULLUP);
-  attachInterrupt(pinFlowMeter, interuptPulse, FALLING);
+  /* Pin configuration for valves */
+  for (int i = 0; i < CHANNEL; i++) {
+    valve[i].setPin(pinValve[i]);
+    pinMode(valve[i].getPin(), OUTPUT);
+  }
 
-  pinMode(pinValve0, OUTPUT);
-  pinMode(pinValve1, OUTPUT);
-  pinMode(pinValve2, OUTPUT);
-
-  /* Pin configuration */
+  /* Pin configuration buttons */
   pinMode(pinEnterBtn, INPUT_PULLUP);
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
@@ -92,13 +100,8 @@ void setup() {
 
 void loop() {
 
-  /* Zeit-Abfrage */
-
-
-
   /* Giess-Routine */
-
-  if (/* es ist Zeit zum giessen */1) {
+  if ((giessenHour == hour()) && (giessenMinute == minute())) {
     giessen = 0;
     flow.resetFlowMeter();
   }
@@ -119,10 +122,23 @@ void loop() {
     statusDisplay(giessen);
   }
 
+
   /* Einstellung Giessmengen */
   if (digitalRead(pinEnterBtn) == 0) {
     setTargetVolumes();
   }
+
+  /* Einstellung Uhr */
+  if (digitalRead(pinUpBtn) == 0) {
+    adjustTime(60);
+    delay(200);
+  }
+
+  if (digitalRead(pinDownBtn) == 0) {
+    adjustTime(-60);
+    delay(200);
+  }
+
 }
 
 
@@ -235,7 +251,12 @@ void statusDisplay(int ch) {
   display.setCursor(0, 0);
 
   if (ch == -1) {
-    display.print("INAKTIV  "); display.println("xx:xx"); //Uhrzeit
+    display.print("INAKTIV  ");
+    // digital clock display of the time
+    display.print(hour()); display.print(":");
+    if(minute() < 10) display.print('0');
+    display.println(minute());
+
     display.println();
     for (int i = 0; i < CHANNEL; i++) {
       display.print(valve[i].getPlant());

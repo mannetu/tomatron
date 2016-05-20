@@ -1,35 +1,41 @@
 /* water.h */
 
-enum statusFlag {IDLE, BUSY};
+#include <Arduino.h>
+
+enum statusFlag {IDLE, BSY};
 
 class Flowmeter {
   private:
+    byte pin;
     int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
-    int pulseCount;
+    long pulseCount;
   public:
     void setCalibrationFactor(int);
-    int  getPulseCount();
+    long  getPulseCount();
     void resetFlowMeter(void);
-    int  getVolume(void);
-    void pulse();
+    byte  getVolume(void);
+    void pulse(void);
+    void setPin(byte);
+    byte  getPin(void);
 };
 
 
 class Magnetvalves {
   private:
-    int pin;
-    int targetV;
-    int currV;
+    byte pin;
+    byte targetV;
+    byte currV;
     char plant[10];
   public:
-    static int flag;
+    static byte flag;
     void setVolumeTarget(int);
     void incVolumeTarget(int);
-    int  readVolumeTarget(void);
+    byte  readVolumeTarget(void);
     char * getPlant(void);
-    int  getPin(void);
-    int  dosing(void);
-    int  dosing(int);
+    void setPin(byte);
+    byte  getPin(void);
+    byte  dosing(void);
+    byte  dosing(byte);
     void setCurrentVolume(int);
-    int  readCurrentVolume(void);
+    byte  readCurrentVolume(void);
 };

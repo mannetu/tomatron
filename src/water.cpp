@@ -16,7 +16,7 @@ void Flowmeter::setCalibrationFactor(int cf) {
   calibrationFactor = cf;
 }
 
-int Flowmeter::getPulseCount() {
+long Flowmeter::getPulseCount() {
   return pulseCount;
 }
 
@@ -25,13 +25,24 @@ void Flowmeter::resetFlowMeter() {
   dosingFlag = IDLE;
 }
 
-int Flowmeter::getVolume() {
+byte Flowmeter::getVolume() {
   return (pulseCount / calibrationFactor);
 }
 
-void Flowmeter::pulse() {
+void Flowmeter::pulse(void) {
   pulseCount++;
 }
+
+
+void Flowmeter::setPin(byte p) {
+    pin = p;
+}
+
+byte Flowmeter::getPin() {
+  return pin;
+}
+
+
 
 
 /******* Magnetvalves Member Functions *******/
@@ -44,7 +55,7 @@ void Magnetvalves::incVolumeTarget(int i) {
   targetV += i;
 }
 
-int Magnetvalves::readVolumeTarget() {
+byte Magnetvalves::readVolumeTarget() {
   return targetV;
 }
 
@@ -52,22 +63,26 @@ char * Magnetvalves::getPlant() {
   return plant;
 }
 
-int Magnetvalves::getPin() {
+void Magnetvalves::setPin(byte p) {
+    pin = p;
+  }
+
+byte Magnetvalves::getPin() {
   return pin;
 }
 
-int Magnetvalves::dosing(void) {
+byte Magnetvalves::dosing(void) {
   if (dosingFlag == IDLE) {
     digitalWrite(this->pin, HIGH);
-    dosingFlag = BUSY;
+    dosingFlag = BSY;
     return 1;
   }
 
-  if ((dosingFlag == BUSY) && (currV < this->targetV)) {
+  if ((dosingFlag == BSY) && (currV < this->targetV)) {
     return 1;
   }
 
-  if ((dosingFlag == BUSY) && (currV > this->targetV)) {
+  if ((dosingFlag == BSY) && (currV > this->targetV)) {
     digitalWrite(this->pin, LOW);
     dosingFlag = IDLE;
     return 0;
@@ -76,18 +91,18 @@ int Magnetvalves::dosing(void) {
   return -1;
 }
 
-int Magnetvalves::dosing(int vol) {
+byte Magnetvalves::dosing(byte vol) {
   if (dosingFlag == IDLE) {
     digitalWrite(this->pin, HIGH);
-    dosingFlag = BUSY;
+    dosingFlag = BSY;
     return 1;
   }
 
-  if ((dosingFlag == BUSY) && (currV < vol)) {
+  if ((dosingFlag == BSY) && (currV < vol)) {
     return 1;
   }
 
-  if ((dosingFlag == BUSY) && (currV > vol)) {
+  if ((dosingFlag == BSY) && (currV > vol)) {
     digitalWrite(this->pin, LOW);
     dosingFlag = IDLE;
     return 0;
@@ -100,6 +115,6 @@ void Magnetvalves::setCurrentVolume(int vol) {
   currV = vol;
 }
 
-int Magnetvalves::readCurrentVolume(void) {
+byte Magnetvalves::readCurrentVolume(void) {
   return currV;
 }
