@@ -19,16 +19,17 @@
 // Water channels
 #define CHANNEL 3
 
-// Nokia 5110 Display
-// Hardware SPI (faster, but must use certain hardware pins):
-// SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
-// MOSI is LCD DIN - this is pin 11 on an Arduino Uno
-// pin 9 - Data/Command select (D/C)
-// pin 8 - LCD chip select (CS)
-// pin 7 - LCD reset (RST)
+/* Nokia 5110 Display
+ * Hardware SPI (faster, but must use certain hardware pins):
+ * SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
+ * MOSI is LCD DIN - this is pin 11 on an Arduino Uno
+ * pin 9 - Data/Command select (D/C)
+ * pin 8 - LCD chip select (CS)
+ * pin 7 - LCD reset (RST)
+ */
 Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7);
 
-// Pins for Buttons
+/* Pins for Buttons  */
 const byte pinUpBtn = 0;      // Up/Increase-Button
 const byte pinDownBtn = 1;    // Down/Decrease-Button
 const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
@@ -97,7 +98,6 @@ void setup() {
   pinMode(pinDownBtn, INPUT_PULLUP);
 }
 
-
 void loop() {
 
   /* Giess-Routine */
@@ -141,7 +141,6 @@ void loop() {
 
 }
 
-
 void displaySetup() {
   display.begin(); // init done
   display.setContrast(50); // you can change the contrast around to adapt the display for the best viewing!
@@ -180,9 +179,6 @@ int writeEeprom(void){
   eeAdress = 0;
   return 0;
 }
-
-
-/***********  Flow-Meter Calibration  **********/
 
 void calibration() {
   float cf;
@@ -289,7 +285,6 @@ void interuptPulse() {
   flow.pulse();
 }
 
-
 void setTargetVolumes() {
   int channel = 0;
 
@@ -306,7 +301,6 @@ void setTargetVolumes() {
     }
   }
 
-
   while (digitalRead(pinEnterBtn)) {
     if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(1);
@@ -319,9 +313,7 @@ void setTargetVolumes() {
       delay(200);
     }
   }
-
   statusDisplay(-1);
-
 }
 
 void setTargetDisplay(int ch) {
