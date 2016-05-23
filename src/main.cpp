@@ -34,12 +34,13 @@ const byte pinUpBtn = 0;      // Up/Increase-Button
 const byte pinDownBtn = 1;    // Down/Decrease-Button
 const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
 
-// Pins for FlowMeter and MagneticValves
+/* Pins for FlowMeter and Valves */
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
 const byte pinValve[CHANNEL] = {4, 5, 6};
 
 /* Flag for active watering thread.
- * Case -1 inactive, case 0, 1, and 2 for active channel    */
+ * Case -1 inactive, case 0, 1, and 2 for active channel
+ */
 int giessen = -1;
 // Clock
 int giessenHour = 18;
@@ -52,9 +53,6 @@ class Magnetvalves valve[CHANNEL];
 
 
 /******* Function prototypes *******/
-void displaySetup(void);
-int  readEeprom(void);
-
 void statusDisplay(int);
 void interuptPulse(void);
 
@@ -72,173 +70,87 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Starte Setup");
 
-  /* Setup Clock */
-  setTime(12,00,00,01,05,16);
+  /* Set Clock */
+  setTime(18, 29, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
-  /* Setup Display */
-  displaySetup();
+  /* Read calibration factor from EEPROM */
+  int eeAdress = 0;   // EEPROM-Adress
+  int cf;
+  EEPROM.get(eeAdress, cf);
+  flow.setCalibrationFactor(cf);
 
-  /* Read config data from EEPROM */
-  readEeprom();
+  /* Read volume targets from EEPROM */
+  int vol;
+  eeAdress = sizeof(int); // Set position to volume targets (after cf)
+  for (byte i = 0; i < (CHANNEL); i++) {
+    EEPROM.get(eeAdress, vol);  //
+    valve[i].setVolumeTarget(vol);
+    eeAdress += sizeof(int);
+  }
 
-  /* Pin configuration for flow meter pulse and interrupt */
+  /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
   pinMode(flow.getPin(), INPUT_PULLUP);
   attachInterrupt(flow.getPin(), interuptPulse, FALLING);
 
-  /* Pin configuration for valves */
-  for (int i = 0; i < CHANNEL; i++) {
+  /* Set pin configuration for valves */
+  for (byte i = 0; i < CHANNEL; i++) {
     valve[i].setPin(pinValve[i]);
     pinMode(valve[i].getPin(), OUTPUT);
   }
 
-  /* Pin configuration buttons */
+  /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT_PULLUP);
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
-}
 
-void loop() {
-
-  /* Giess-Routine */
-  if ((giessenHour == hour()) && (giessenMinute == minute())) {
-    giessen = 0;
-    flow.resetFlowMeter();
-  }
-
-  /* Giessen-Loop */
-  if (giessen > -1) {
-
-    valve[giessen].setCurrentVolume(flow.getVolume());
-
-    if (valve[giessen].dosing() == 0) {
-      giessen++;
-    }
-
-    if (giessen > CHANNEL-1) {
-      giessen = -1;
-    }
-
-    statusDisplay(giessen);
-  }
-
-
-  /* Einstellung Giessmengen */
-  if (digitalRead(pinEnterBtn) == 0) {
-    setTargetVolumes();
-  }
-
-  /* Einstellung Uhr */
-  if (digitalRead(pinUpBtn) == 0) {
-    adjustTime(60);
-    delay(200);
-  }
-
-  if (digitalRead(pinDownBtn) == 0) {
-    adjustTime(-60);
-    delay(200);
-  }
-
-}
-
-void displaySetup() {
+  /* Setup LCD display */
   display.begin(); // init done
-  display.setContrast(50); // you can change the contrast around to adapt the display for the best viewing!
+  display.setContrast(50);
   display.setTextSize(1);
   display.setTextColor(BLACK);
   display.setCursor(0,0);
   display.display(); // show splashscreen
   delay(1000);
-  display.clearDisplay();   // clears the screen and buffer
-  display.display();
+  statusDisplay(giessen);
 }
 
-int readEeprom() {
-  int volTarget;
-  int cf;
-  int eeAdress = 0;
+void loop() {
 
-  EEPROM.get(eeAdress, cf);  // Load calibration factor
-  flow.setCalibrationFactor(cf);
-
-  eeAdress = sizeof(int);
-  for (byte i = 0; i < (CHANNEL); i++) {
-    EEPROM.get(eeAdress, volTarget);  //
-    valve[i].setVolumeTarget(volTarget);
-    eeAdress += sizeof(int);
-  }
-  return 0;
-}
-
-int writeEeprom(void){
-  int eeAdress = 0 + sizeof(int); // "vorspulen" nach calibration factor
-  for (int i = 0; i < CHANNEL; i++) {
-    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
-    eeAdress += sizeof(int);
-  }
-  eeAdress = 0;
-  return 0;
-}
-
-void calibration() {
-  float cf;
-  double calVolume = 10;
-
-  display.clearDisplay();
-  display.setCursor(0,0);
-  //Display        12345678901234
-  display.println("Kalibierung:");
-  display.println("Taste drücken!");
-  display.println("10L aus V1:");
-  display.println("Genaue Menge");
-  display.println("auswiegen!");
-  display.display(); // show screen
-
-  while (digitalRead(pinEnterBtn)) {/* Wait on button */ }
-  flow.resetFlowMeter();
-
-  while (!valve[0].dosing((int)calVolume)) {
-    valve[0].setCurrentVolume(flow.getVolume());
-    calibrationDisplay(valve[0].readCurrentVolume());
+  /* Check if time for giessen */
+  if ((giessenHour == hour()) && (giessenMinute == minute())) {
+    giessen = 0;
+    flow.resetFlowMeter();
   }
 
-  // Einstellung exakteMenge über Up/Down-Taster, Bestätigung durch Enter
-
-  calibrationDisplay(valve[0].readCurrentVolume());
-
-  while (digitalRead(pinEnterBtn)) {
-
-    if (digitalRead(pinUpBtn)) {	// wenn Arduino-Pin 6 auf LOW -> Einstell-Taste gedrückt
-      calVolume += 0.1;
-      calibrationDisplay(calVolume);
-      delay(200);
+  /* Giessen routine */
+  if (giessen > -1) {
+    valve[giessen].setCurrentVolume(flow.getVolume());
+    if (valve[giessen].dosing() == 0) {
+      giessen++;
     }
-
-    if (digitalRead(pinDownBtn)) {
-      calVolume -= 0.1;
-      calibrationDisplay(calVolume);
-      delay(200);
+    if (giessen > CHANNEL-1) {
+      giessen = -1;
     }
+    statusDisplay(giessen);
   }
 
-  // Berechnung Kalibrierfaktor und speichern im EEPROM *
-  cf = flow.getPulseCount() / calVolume;
-  flow.setCalibrationFactor(cf);
-  EEPROM.put(0, cf);
-}
 
-void calibrationDisplay(double menge) {
-  display.clearDisplay();
-  display.setCursor(0,0);
-  //Display        12345678901234
-  display.println("Mit +/- Tasten");
-  display.println("10 * Menge");
-  display.println("Enter");
-  display.println();
-  display.setTextSize(1);
-  display.print(menge, 3); display.println(" kg");
-  display.setTextSize(1);
-  display.display();
+  /* Set Target Volumes */
+  if (digitalRead(pinEnterBtn) == 0) {
+    setTargetVolumes();
+  }
+
+  /* Set Clock */
+  if (digitalRead(pinUpBtn) == 0) {
+    adjustTime(60);  // Function of time library. Adds given seconds to time.
+    delay(200);
+  }
+  if (digitalRead(pinDownBtn) == 0) {
+    adjustTime(-60); // Function of time library. Adds given seconds to time.
+    delay(200);
+  }
+
 }
 
 void statusDisplay(int ch) {
@@ -246,6 +158,7 @@ void statusDisplay(int ch) {
   display.clearDisplay();
   display.setCursor(0, 0);
 
+  /* Display if nothing is active */
   if (ch == -1) {
     display.print("INAKTIV  ");
     // digital clock display of the time
@@ -263,6 +176,7 @@ void statusDisplay(int ch) {
     return;
   }
 
+  /* Display during active giessing */
   display.print("AKTIV: KANAL "); display.println(ch+1);
   display.println();
   for (int i = 0; i < CHANNEL; i++) {
@@ -285,9 +199,72 @@ void interuptPulse() {
   flow.pulse();
 }
 
+
+void calibration() {
+  int cf; // calibration factor
+  double vol = 10; // Volume dispensed for calibration
+
+  /* Show instructions on display */
+  display.clearDisplay();
+  display.setCursor(0,0);
+  //Display-Pos    12345678901234
+  display.println("Kalibierung:");
+  display.println("Taste drücken!");
+  display.println("10L aus V1:");
+  display.println("Genaue Menge");
+  display.println("auswiegen!");
+  display.display();
+
+  /* Wait on button press */
+  while (digitalRead(pinEnterBtn)) {/* Wait on button press */ }
+  flow.resetFlowMeter();
+
+  /* Dispense volume vol */
+  while (!valve[0].dosing(int (vol))) {
+    valve[0].setCurrentVolume(flow.getVolume());
+    calibrationDisplay(valve[0].readCurrentVolume());
+  }
+
+  /* Adjust exact volume with Up/Down-Buttons and press Enter */
+  calibrationDisplay(valve[0].readCurrentVolume());
+  while (digitalRead(pinEnterBtn)) {
+    if (digitalRead(pinUpBtn) == 0) {
+      vol += 0.1;
+      calibrationDisplay(vol);
+      delay(200);
+    }
+    if (digitalRead(pinDownBtn) == 0) {
+      vol -= 0.1;
+      calibrationDisplay(vol);
+      delay(200);
+    }
+  }
+  delay(500);
+
+  /* Calculate calibration factor and write to EEPROM */
+  cf = flow.getPulseCount() / vol;
+  flow.setCalibrationFactor(cf);
+  EEPROM.put(0, cf);
+}
+
+void calibrationDisplay(double vol) {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  //Display        12345678901234
+  display.println("Volumen ein-");
+  display.println("stellen und ");
+  display.println("bestätigen");
+  display.println();
+  display.print(vol, 3); display.println(" kg");
+  display.display();
+}
+
+
 void setTargetVolumes() {
   int channel = 0;
+  int eeAdress;
 
+  /* Choose channel */
   while (digitalRead(pinEnterBtn)) {
     if (digitalRead(pinDownBtn) == 0) {
       channel++;
@@ -301,6 +278,7 @@ void setTargetVolumes() {
     }
   }
 
+  /* Adjust volume */
   while (digitalRead(pinEnterBtn)) {
     if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(1);
@@ -313,6 +291,12 @@ void setTargetVolumes() {
       delay(200);
     }
   }
+
+  /* Write new target to EEPROM */
+  eeAdress = (channel + 1) * sizeof(int); // +1 due to calibration factor on
+  EEPROM.put(eeAdress, valve[channel].readVolumeTarget());
+
+  /* Show status display */
   statusDisplay(-1);
 }
 
