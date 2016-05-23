@@ -112,7 +112,7 @@ void setup() {
   display.setCursor(0,0);
   display.display(); // show splashscreen
   delay(1000);
-  statusDisplay(giessen);
+  statusDisplay(-1);
 }
 
 void loop() {
@@ -134,7 +134,6 @@ void loop() {
     }
     statusDisplay(giessen);
   }
-
 
   /* Set Target Volumes */
   if (digitalRead(pinEnterBtn) == 0) {
@@ -165,7 +164,6 @@ void statusDisplay(int ch) {
     display.print(hour()); display.print(":");
     if(minute() < 10) display.print('0');
     display.println(minute());
-
     display.println();
     for (int i = 0; i < CHANNEL; i++) {
       display.print(valve[i].getPlant());
@@ -180,17 +178,20 @@ void statusDisplay(int ch) {
   display.print("AKTIV: KANAL "); display.println(ch+1);
   display.println();
   for (int i = 0; i < CHANNEL; i++) {
-    if (i < ch+1) {
+    if (i < ch+1)
+    {
       display.print(valve[i].getPlant());
       display.setCursor(i, 8);
       display.print(valve[i].readVolumeTarget()); display.setCursor(i, 11);
-      display.print(valve[i].readCurrentVolume()/valve[i].readVolumeTarget());
+      display.print(valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
       display.println(" %%");
-      } else {
-        display.print(valve[i].getPlant()); display.setCursor(i, 9);
-        display.println(valve[i].readVolumeTarget());
-      }
     }
+    else
+    {
+      display.print(valve[i].getPlant()); display.setCursor(i, 9);
+      display.println(valve[i].readVolumeTarget());
+    }
+  }
   display.display(); // show screen
   return;
 }
