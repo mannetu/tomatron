@@ -16,7 +16,7 @@
 #define _WaterH_
 #include "Water.h"
 
-// Water channels
+/* Water channels */
 #define CHANNEL 3
 
 /* Nokia 5110 Display
@@ -33,26 +33,29 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7);
 const byte pinUpBtn = 0;      // Up/Increase-Button
 const byte pinDownBtn = 1;    // Down/Decrease-Button
 const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
+int btnDelay = 200; // ButtonDelay
 
 /* Pins for FlowMeter and Valves */
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
 const byte pinValve[CHANNEL] = {4, 5, 6};
 
-/* Flag for active watering thread.
- * Case -1 inactive, case 0, 1, and 2 for active channel
- */
-int giessen = -1;
-// Clock
+/* Flag for system status:  -1 (idle) / 0, 1, 2 (busy chanel) */
+int giessFlag = -1;
+int lastTime = 0;
+
+/* Default time for giessen */
 int giessenHour = 18;
 int giessenMinute = 30;
 
 
-/***** Objects *******/
+/******* Objects *******************/
 class Flowmeter flow;
 class Magnetvalves valve[CHANNEL];
 
 
 /******* Function prototypes *******/
+int checkGiessen(int);
+int giessRoutine(int);
 void statusDisplay(int);
 void interuptPulse(void);
 
@@ -63,7 +66,7 @@ void calibration();
 void calibrationDisplay(float);
 
 
-/****** Functions *******/
+/****** Functions ******************/
 void setup() {
 
   /* Setup Serial for Debug */
@@ -117,40 +120,52 @@ void setup() {
 
 void loop() {
 
-  /* Check if time for giessen */
-  if ((giessenHour == hour()) && (giessenMinute == minute())) {
-    giessen = 0;
-    flow.resetFlowMeter();
+  if (millis() - lastTime > 500) {
+    /* Check if it is time for giessen */
+    giessFlag = checkGiessen(giessFlag);
+    /* If so, then call giessRoutine until giessen is done */
+    if (giessFlag > -1) giessRoutine(giessFlag);
+    lastTime = millis();
   }
 
-  /* Giessen routine */
-  if (giessen > -1) {
-    valve[giessen].setCurrentVolume(flow.getVolume());
-    if (valve[giessen].dosing() == 0) {
-      giessen++;
-    }
-    if (giessen > CHANNEL-1) {
-      giessen = -1;
-    }
-    statusDisplay(giessen);
-  }
-
-  /* Set Target Volumes */
+  /* Set Target Volumes on button press */
   if (digitalRead(pinEnterBtn) == 0) {
     setTargetVolumes();
   }
 
-  /* Set Clock */
+  /* Set Clock on button press */
   if (digitalRead(pinUpBtn) == 0) {
     adjustTime(60);  // Function of time library. Adds given seconds to time.
-    delay(200);
+    delay(btnDelay);
   }
   if (digitalRead(pinDownBtn) == 0) {
     adjustTime(-60); // Function of time library. Adds given seconds to time.
-    delay(200);
+    delay(btnDelay);
   }
-
 }
+
+int checkGiessen(int gf) {
+  /* Check if time for giessen */
+  if ((gf == -1) && (giessenHour == hour()) && (giessenMinute == minute())) {
+    flow.resetFlowMeter();
+    return 0;
+  }
+  return -1;
+}
+
+int giessRoutine(int gf) {
+  /* Giessen routines */
+    valve[gf].setCurrentVolume(flow.getVolume());
+    if (valve[gf].dosing() == 0) {
+      flow.resetFlowMeter();
+      gf++;
+    }
+    if (gf > CHANNEL-1) {
+      gf = -1;
+    }
+    statusDisplay(gf);
+    return gf;
+  }
 
 void statusDisplay(int ch) {
 
@@ -159,11 +174,18 @@ void statusDisplay(int ch) {
 
   /* Display if nothing is active */
   if (ch == -1) {
-    display.print("INAKTIV  ");
-    // digital clock display of the time
+    display.print("Zeit: ");
     display.print(hour()); display.print(":");
     if(minute() < 10) display.print('0');
-    display.println(minute());
+    display.print(minute());
+    if(second() < 10) display.print('0');
+    display.println(second());
+
+    display.print("Giesszeit: ");
+    display.print(giessenHour); display.print(":");
+    if(giessenMinute < 10) display.print('0');
+    display.println(giessenMinute);
+
     display.println();
     for (int i = 0; i < CHANNEL; i++) {
       display.print(valve[i].getPlant());
@@ -175,8 +197,8 @@ void statusDisplay(int ch) {
   }
 
   /* Display during active giessing */
-  display.print("AKTIV: KANAL "); display.println(ch+1);
-  display.println();
+  display.print("Giessen! "); display.println(ch+1);
+  display.print("Pulse: "); display.println(flow.getPulseCount());
   for (int i = 0; i < CHANNEL; i++) {
     if (i < ch+1)
     {
@@ -218,6 +240,7 @@ void calibration() {
 
   /* Wait on button press */
   while (digitalRead(pinEnterBtn)) {/* Wait on button press */ }
+  delay(btnDelay);
   flow.resetFlowMeter();
 
   /* Dispense volume vol */
@@ -232,15 +255,15 @@ void calibration() {
     if (digitalRead(pinUpBtn) == 0) {
       vol += 0.1;
       calibrationDisplay(vol);
-      delay(200);
+      delay(btnDelay);
     }
     if (digitalRead(pinDownBtn) == 0) {
       vol -= 0.1;
       calibrationDisplay(vol);
-      delay(200);
+      delay(btnDelay);
     }
   }
-  delay(500);
+  delay(2 * btnDelay);
 
   /* Calculate calibration factor and write to EEPROM */
   cf = flow.getPulseCount() / vol;
@@ -270,12 +293,12 @@ void setTargetVolumes() {
     if (digitalRead(pinDownBtn) == 0) {
       channel++;
       setTargetDisplay(channel);
-      delay(200);
+      delay(btnDelay);
     }
     if (digitalRead(pinUpBtn) == 0) {
       channel--;
       setTargetDisplay(channel);
-      delay(200);
+      delay(btnDelay);
     }
   }
 
@@ -284,12 +307,12 @@ void setTargetVolumes() {
     if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(1);
       setTargetDisplay(channel);
-      delay(200);
+      delay(btnDelay);
     }
     if (digitalRead(pinUpBtn) == 0) {
       valve[channel].incVolumeTarget(-1);
       setTargetDisplay(channel);
-      delay(200);
+      delay(btnDelay);
     }
   }
 
