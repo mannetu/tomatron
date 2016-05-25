@@ -4,6 +4,14 @@
 
 enum statusFlag {IDLE, BSY};
 
+class Watercontroller {
+  private:
+    int gf;
+  public:
+    int timecheck(int);
+    int control(int);
+};
+
 class Flowmeter {
   private:
     byte pin;

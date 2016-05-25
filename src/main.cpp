@@ -8,8 +8,6 @@
 #define _ArduinoH_
 #include <EEPROM.h>
 #include <Time.h>
-//#include <DS3232RTC.h>
-#include <WIRE.h>       // I2C-Library für RTC-Uhr (z.B. D3231)
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
@@ -41,7 +39,7 @@ const byte pinValve[CHANNEL] = {4, 5, 6};
 
 /* Flag for system status:  -1 (idle) / 0, 1, 2 (busy chanel) */
 int giessFlag = -1;
-int lastTime = 0;
+int giessCallLastTime = 0;
 
 /* Default time for giessen */
 int giessenHour = 18;
@@ -120,12 +118,12 @@ void setup() {
 
 void loop() {
 
-  if (millis() - lastTime > 500) {
+  if (millis() - giessCallLastTime > 500) {
     /* Check if it is time for giessen */
     giessFlag = checkGiessen(giessFlag);
     /* If so, then call giessRoutine until giessen is done */
     if (giessFlag > -1) giessRoutine(giessFlag);
-    lastTime = millis();
+    giessCallLastTime = millis();
   }
 
   /* Set Target Volumes on button press */
