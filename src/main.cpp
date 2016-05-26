@@ -61,33 +61,15 @@ void setTargetVolumes(void);
 void setTargetDisplay(int);
 
 void calibration();
-void calibrationDisplay(float);
+void calibrationDisplay(double);
 
 
 /****** Functions ******************/
 void setup() {
 
   /* Setup Serial for Debug */
-//  Serial.begin(9600);
+  //  Serial.begin(9600);
   Serial.println("Starte Setup");
-
-  /* Set Clock */
-  setTime(18, 29, 00, 01, 05, 16); // hour, min, sec, day, month, year
-
-  /* Read calibration factor from EEPROM */
-  int eeAdress = 0;   // EEPROM-Adress
-  int cf;
-  //EEPROM.get(eeAdress, cf);
-  cf = 1;  // Only for Testing and Eeprom-Init!!
-  flow.setCalibrationFactor(cf);
-
-  /* Read volume targets from EEPROM */
-  int vol;
-  for (byte i = 0; i < (CHANNEL); i++) {
-    eeAdress = (i+1) * sizeof(int); // Set position to volume targets (after cf)
-    EEPROM.get(eeAdress, vol);  //
-    valve[i].setVolumeTarget(vol);
-  }
 
   /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
@@ -105,6 +87,24 @@ void setup() {
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
 
+  /* Set Clock */
+  setTime(18, 25, 00, 01, 05, 16); // hour, min, sec, day, month, year
+
+  /* Read calibration factor from EEPROM */
+  int eeAdress = 0;   // EEPROM-Adress
+  int cf;
+  EEPROM.get(eeAdress, cf);
+  cf = 2; // Only for testing
+  flow.setCalibrationFactor(cf);
+
+  /* Read volume targets from EEPROM */
+  int vol;
+  for (byte i = 0; i < (CHANNEL); i++) {
+    eeAdress = (i+1) * sizeof(int); // Set position to volume targets (after cf)
+    EEPROM.get(eeAdress, vol);  //
+    valve[i].setVolumeTarget(vol);
+  }
+
   /* Setup LCD display */
   display.begin(); // init done
   display.setContrast(50);
@@ -113,6 +113,15 @@ void setup() {
   display.setCursor(0,0);
   display.display(); // show splashscreen
   delay(1000);
+
+  /* If Enter is pressed at boot, enter calibration mode */
+  if (digitalRead(pinEnterBtn) == LOW) {
+    display.clearDisplay();
+    display.display();
+    delay(5000);
+    calibration();
+  }
+
   statusDisplay(-1);
 }
 
@@ -236,26 +245,24 @@ void calibration() {
   display.clearDisplay();
   display.setCursor(0,0);
   //Display-Pos    12345678901234
-  display.println("Kalibierung:");
-  display.println("Taste drücken!");
+  display.println("Kalibierung");
+  display.println("Taste drucken");
   display.println("10L aus V1:");
   display.println("Genaue Menge");
   display.println("auswiegen!");
   display.display();
-
-  /* Wait on button press */
-  while (digitalRead(pinEnterBtn)) {/* Wait on button press */ }
-  delay(btnDelay);
   flow.resetFlowMeter();
 
+  while (digitalRead(pinEnterBtn)) { };
+
   /* Dispense volume vol */
-  while (!valve[0].dosing(int (vol))) {
+  while (valve[0].dosing(int (vol)) == 1) {
     valve[0].setCurrentVolume(flow.getVolume());
-    calibrationDisplay(valve[0].readCurrentVolume());
+    calibrationDisplay(double(valve[0].readCurrentVolume()));
   }
 
   /* Adjust exact volume with Up/Down-Buttons and press Enter */
-  calibrationDisplay(valve[0].readCurrentVolume());
+  calibrationDisplay(double(valve[0].readCurrentVolume()));
   while (digitalRead(pinEnterBtn)) {
     if (digitalRead(pinUpBtn) == 0) {
       vol += 0.1;
@@ -282,9 +289,9 @@ void calibrationDisplay(double vol) {
   //Display        12345678901234
   display.println("Volumen ein-");
   display.println("stellen und ");
-  display.println("bestätigen");
+  display.println("bestaetigen");
   display.println();
-  display.print(vol, 3); display.println(" kg");
+  display.print(vol, 1); display.println(" kg");
   display.display();
 }
 
