@@ -68,7 +68,7 @@ void calibrationDisplay(float);
 void setup() {
 
   /* Setup Serial for Debug */
-  Serial.begin(9600);
+//  Serial.begin(9600);
   Serial.println("Starte Setup");
 
   /* Set Clock */
@@ -77,21 +77,21 @@ void setup() {
   /* Read calibration factor from EEPROM */
   int eeAdress = 0;   // EEPROM-Adress
   int cf;
-  EEPROM.get(eeAdress, cf);
+  //EEPROM.get(eeAdress, cf);
+  cf = 1;  // Only for Testing and Eeprom-Init!!
   flow.setCalibrationFactor(cf);
 
   /* Read volume targets from EEPROM */
   int vol;
-  eeAdress = sizeof(int); // Set position to volume targets (after cf)
   for (byte i = 0; i < (CHANNEL); i++) {
+    eeAdress = (i+1) * sizeof(int); // Set position to volume targets (after cf)
     EEPROM.get(eeAdress, vol);  //
     valve[i].setVolumeTarget(vol);
-    eeAdress += sizeof(int);
   }
 
   /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
-  pinMode(flow.getPin(), INPUT_PULLUP);
+  pinMode(flow.getPin(), INPUT);
   attachInterrupt(flow.getPin(), interuptPulse, FALLING);
 
   /* Set pin configuration for valves */
@@ -118,11 +118,15 @@ void setup() {
 
 void loop() {
 
-  if (millis() - giessCallLastTime > 500) {
-    /* Check if it is time for giessen */
-    giessFlag = checkGiessen(giessFlag);
-    /* If so, then call giessRoutine until giessen is done */
-    if (giessFlag > -1) giessRoutine(giessFlag);
+  /* Check if it is time for giessen */
+  if (giessFlag == -1) giessFlag = checkGiessen(giessFlag);
+
+  /* If so, then call giessRoutine until giessen is done */
+  if (giessFlag > -1) giessRoutine(giessFlag);
+
+  /* Update Display */
+  if ((millis() - giessCallLastTime > 500)) {
+    statusDisplay(giessFlag);
     giessCallLastTime = millis();
   }
 
@@ -161,7 +165,7 @@ int giessRoutine(int gf) {
     if (gf > CHANNEL-1) {
       gf = -1;
     }
-    statusDisplay(gf);
+  //  statusDisplay(gf);
     return gf;
   }
 
@@ -172,22 +176,23 @@ void statusDisplay(int ch) {
 
   /* Display if nothing is active */
   if (ch == -1) {
-    display.print("Zeit: ");
+    display.print("Zeit ");
     display.print(hour()); display.print(":");
     if(minute() < 10) display.print('0');
-    display.print(minute());
+    display.print(minute()); display.print(":");
     if(second() < 10) display.print('0');
-    display.println(second());
+    display.print(second()); display.println();
 
-    display.print("Giesszeit: ");
+    display.print("Timer ");
     display.print(giessenHour); display.print(":");
     if(giessenMinute < 10) display.print('0');
     display.println(giessenMinute);
 
     display.println();
     for (int i = 0; i < CHANNEL; i++) {
+      display.setCursor(0, (8*i+20));
       display.print(valve[i].getPlant());
-      display.setCursor(i, 8);
+      display.setCursor(25, (8*i+20));
       display.println(valve[i].readVolumeTarget());
     }
     display.display(); // show screen
@@ -200,15 +205,19 @@ void statusDisplay(int ch) {
   for (int i = 0; i < CHANNEL; i++) {
     if (i < ch+1)
     {
+      display.setCursor(0, (8*i+20));
       display.print(valve[i].getPlant());
-      display.setCursor(i, 8);
-      display.print(valve[i].readVolumeTarget()); display.setCursor(i, 11);
+      display.setCursor(32, (8*i+20));
+      display.print(valve[i].readVolumeTarget());
+      display.setCursor(49, (8*i+20));
       display.print(valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
-      display.println(" %%");
+      display.println("%");
     }
     else
     {
-      display.print(valve[i].getPlant()); display.setCursor(i, 9);
+      display.setCursor(0, (8*i+20));
+      display.print(valve[i].getPlant());
+      display.setCursor(32, (8*i+20));
       display.println(valve[i].readVolumeTarget());
     }
   }
@@ -285,38 +294,35 @@ void calibrationDisplay(double vol) {
 void setTargetVolumes() {
   int channel = 0;
   int eeAdress;
+  delay(1000);
 
-  /* Choose channel */
-  while (digitalRead(pinEnterBtn)) {
-    if (digitalRead(pinDownBtn) == 0) {
+  while (channel < CHANNEL) {
+    /* Choose channel */
+    if (digitalRead(pinEnterBtn) == 0) {
       channel++;
-      setTargetDisplay(channel);
       delay(btnDelay);
     }
-    if (digitalRead(pinUpBtn) == 0) {
-      channel--;
-      setTargetDisplay(channel);
-      delay(btnDelay);
-    }
-  }
 
-  /* Adjust volume */
-  while (digitalRead(pinEnterBtn)) {
-    if (digitalRead(pinDownBtn) == 0) {
+    /* Adjust volume */
+    if (digitalRead(pinUpBtn) == 0) {
       valve[channel].incVolumeTarget(1);
       setTargetDisplay(channel);
       delay(btnDelay);
     }
-    if (digitalRead(pinUpBtn) == 0) {
+
+    if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(-1);
       setTargetDisplay(channel);
       delay(btnDelay);
     }
+  setTargetDisplay(channel);
   }
 
   /* Write new target to EEPROM */
-  eeAdress = (channel + 1) * sizeof(int); // +1 due to calibration factor on
-  EEPROM.put(eeAdress, valve[channel].readVolumeTarget());
+  for (channel = 0; channel < CHANNEL; channel++) {
+    eeAdress = (channel+1) * sizeof(int);
+    EEPROM.put(eeAdress, valve[channel].readVolumeTarget());
+  }
 
   /* Show status display */
   statusDisplay(-1);
@@ -326,16 +332,16 @@ void setTargetDisplay(int ch) {
 
   display.clearDisplay();
   display.setCursor(0, 0);
-  display.print("Zielvolumen:   "); display.println("xx:xx"); //Uhrzeit
+  display.println("Set Volumes");
   display.println();
 
   for (int i = 0; i < CHANNEL; i++) {
     if (i == ch) {
       display.setTextColor(WHITE, BLACK);
-      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget()); display.println(" L");
       display.setTextColor(BLACK, WHITE);
     } else {
-      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget());
+      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget()); display.println(" L");
     }
   }
 
