@@ -78,11 +78,11 @@ byte Magnetvalves::dosing(void) {
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV < this->targetV)) {
+  if ((dosingFlag == BSY) && (currV < this->targetV-1)) {
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV > this->targetV)) {
+  if ((dosingFlag == BSY) && (currV > this->targetV-1)) {
     digitalWrite(this->pin, LOW);
     dosingFlag = IDLE;
     return 0;
@@ -98,11 +98,11 @@ byte Magnetvalves::dosing(byte vol) {
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV < vol)) {
+  if ((dosingFlag == BSY) && (currV < vol-1)) {
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV > vol)) {
+  if ((dosingFlag == BSY) && (currV > vol-1)) {
     digitalWrite(this->pin, LOW);
     dosingFlag = IDLE;
     return 0;

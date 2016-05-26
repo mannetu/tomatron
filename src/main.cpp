@@ -61,6 +61,7 @@ void setTargetVolumes(void);
 void setTargetDisplay(int);
 
 void calibration();
+void calibrationDoseDisplay(int);
 void calibrationDisplay(double);
 
 
@@ -94,7 +95,6 @@ void setup() {
   int eeAdress = 0;   // EEPROM-Adress
   int cf;
   EEPROM.get(eeAdress, cf);
-  cf = 2; // Only for testing
   flow.setCalibrationFactor(cf);
 
   /* Read volume targets from EEPROM */
@@ -239,7 +239,7 @@ void interuptPulse() {
 
 void calibration() {
   int cf; // calibration factor
-  double vol = 10; // Volume dispensed for calibration
+  double vol = 10.0; // Volume dispensed for calibration
 
   /* Show instructions on display */
   display.clearDisplay();
@@ -256,13 +256,14 @@ void calibration() {
   while (digitalRead(pinEnterBtn)) { };
 
   /* Dispense volume vol */
-  while (valve[0].dosing(int (vol)) == 1) {
+  while (valve[0].dosing(int (vol)) > 0) {
     valve[0].setCurrentVolume(flow.getVolume());
-    calibrationDisplay(double(valve[0].readCurrentVolume()));
+    calibrationDoseDisplay(valve[0].readCurrentVolume());
   }
 
   /* Adjust exact volume with Up/Down-Buttons and press Enter */
   calibrationDisplay(double(valve[0].readCurrentVolume()));
+  vol = double(valve[0].readCurrentVolume());
   while (digitalRead(pinEnterBtn)) {
     if (digitalRead(pinUpBtn) == 0) {
       vol += 0.1;
@@ -281,6 +282,18 @@ void calibration() {
   cf = flow.getPulseCount() / vol;
   flow.setCalibrationFactor(cf);
   EEPROM.put(0, cf);
+}
+
+void calibrationDoseDisplay(int vol) {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  //Display        12345678901234
+  display.println("Dosierung");
+  display.println("");
+  display.println("");
+  display.println();
+  display.print(vol, 1); display.println(" kg");
+  display.display();
 }
 
 void calibrationDisplay(double vol) {
