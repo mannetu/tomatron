@@ -52,8 +52,8 @@ class Magnetvalves valve[CHANNEL];
 
 
 /******* Function prototypes *******/
-int checkGiessen(int);
-int giessRoutine(int);
+int checkGiessen(void);
+void giessRoutine(void);
 void statusDisplay(int);
 void interuptPulse(void);
 
@@ -91,8 +91,8 @@ void setup() {
 
   /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
-  pinMode(flow.getPin(), INPUT);
-  attachInterrupt(flow.getPin(), interuptPulse, FALLING);
+  pinMode(flow.getPin(), INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(flow.getPin()), interuptPulse, FALLING);
 
   /* Set pin configuration for valves */
   for (byte i = 0; i < CHANNEL; i++) {
@@ -119,10 +119,10 @@ void setup() {
 void loop() {
 
   /* Check if it is time for giessen */
-  if (giessFlag == -1) giessFlag = checkGiessen(giessFlag);
+  if (giessFlag == -1) giessFlag = checkGiessen();
 
   /* If so, then call giessRoutine until giessen is done */
-  if (giessFlag > -1) giessRoutine(giessFlag);
+  if (giessFlag > -1) giessRoutine();
 
   /* Update Display */
   if ((millis() - giessCallLastTime > 500)) {
@@ -146,27 +146,25 @@ void loop() {
   }
 }
 
-int checkGiessen(int gf) {
+int checkGiessen() {
   /* Check if time for giessen */
-  if ((gf == -1) && (giessenHour == hour()) && (giessenMinute == minute())) {
+  if ((giessFlag == -1) && (giessenHour == hour()) && (giessenMinute == minute())) {
     flow.resetFlowMeter();
     return 0;
   }
   return -1;
 }
 
-int giessRoutine(int gf) {
+void giessRoutine() {
   /* Giessen routines */
-    valve[gf].setCurrentVolume(flow.getVolume());
-    if (valve[gf].dosing() == 0) {
+    valve[giessFlag].setCurrentVolume(flow.getVolume());
+    if (valve[giessFlag].dosing() == 0) {
       flow.resetFlowMeter();
-      gf++;
+      giessFlag++;
     }
-    if (gf > CHANNEL-1) {
-      gf = -1;
+    if (giessFlag > CHANNEL-1) {
+      giessFlag = -1;
     }
-  //  statusDisplay(gf);
-    return gf;
   }
 
 void statusDisplay(int ch) {
@@ -210,7 +208,7 @@ void statusDisplay(int ch) {
       display.setCursor(32, (8*i+20));
       display.print(valve[i].readVolumeTarget());
       display.setCursor(49, (8*i+20));
-      display.print(valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
+      display.print(100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
       display.println("%");
     }
     else
