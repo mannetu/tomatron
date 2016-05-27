@@ -200,6 +200,8 @@ void statusDisplay(int ch) {
       display.setCursor(0, (8*i+20));
       display.print(valve[i].getPlant());
       display.setCursor(25, (8*i+20));
+      if (valve[i].readVolumeTarget()<100) display.print(" ");
+      if (valve[i].readVolumeTarget()<10) display.print(" ");
       display.println(valve[i].readVolumeTarget());
     }
     display.display(); // show screen
@@ -210,13 +212,18 @@ void statusDisplay(int ch) {
   display.print("Giessen! "); display.println(ch+1);
   display.print("Pulse: "); display.println(flow.getPulseCount());
   for (int i = 0; i < CHANNEL; i++) {
+
     if (i < ch+1)
     {
       display.setCursor(0, (8*i+20));
       display.print(valve[i].getPlant());
-      display.setCursor(32, (8*i+20));
-      display.print(valve[i].readVolumeTarget());
+      display.setCursor(14, (8*i+20));
+      if (valve[i].readVolumeTarget()<100) display.print(" ");
+      if (valve[i].readVolumeTarget()<10) display.print(" ");
+      display.print(valve[i].readVolumeTarget()); display.print(" L");
       display.setCursor(49, (8*i+20));
+      if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<100) display.print(" ");
+      if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<10) display.print(" ");
       display.print(100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
       display.println("%");
     }
@@ -224,8 +231,10 @@ void statusDisplay(int ch) {
     {
       display.setCursor(0, (8*i+20));
       display.print(valve[i].getPlant());
-      display.setCursor(32, (8*i+20));
-      display.println(valve[i].readVolumeTarget());
+      display.setCursor(14, (8*i+20));
+      if (valve[i].readVolumeTarget()<100) display.print(" ");
+      if (valve[i].readVolumeTarget()<10) display.print(" ");
+      display.print(valve[i].readVolumeTarget()); display.println(" L");
     }
   }
   display.display(); // show screen
@@ -354,12 +363,19 @@ void setTargetDisplay(int ch) {
   display.println();
 
   for (int i = 0; i < CHANNEL; i++) {
+
     if (i == ch) {
       display.setTextColor(WHITE, BLACK);
-      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget()); display.println(" L");
+      display.print(valve[i].getPlant());
+      if (valve[i].readVolumeTarget() < 100) display.print(" ");
+      if (valve[i].readVolumeTarget() < 10) display.print(" ");
+      display.print(valve[i].readVolumeTarget()); display.println(" L");
       display.setTextColor(BLACK, WHITE);
     } else {
-      display.print(valve[i].getPlant()); display.print(valve[i].readVolumeTarget()); display.println(" L");
+      display.print(valve[i].getPlant());
+      if (valve[i].readVolumeTarget() < 100) display.print(" ");
+      if (valve[i].readVolumeTarget() < 10) display.print(" ");
+      display.print(valve[i].readVolumeTarget()); display.println(" L");
     }
   }
 
