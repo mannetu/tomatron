@@ -47,9 +47,9 @@ int giessFlag = -1;
 int giessCallLastTime = 0;
 
 /* Default time for giessen */
-int giessenHour = 18;
-int giessenMinute = 30;
-
+//int giessenHour = 18;
+//int giessenMinute = 30;
+time_t giessTime;
 
 /******* Objects *******************/
 class Flowmeter flow;
@@ -72,7 +72,14 @@ void calibrationDisplay(double);
 /****** Functions ******************/
 void setup() {
 
+  /* Set clock */
+  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
+  /*** ONLY FOR INITIAL EEPROM PROGRAMMING */
+    giessTime = now() + 3600;
+    EEPROM.put(0, giessTime);
+    EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
+  /*****************************************/
 
   /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
@@ -90,20 +97,22 @@ void setup() {
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
 
-  /* Set Clock */
-  setTime(18, 25, 00, 01, 05, 16); // hour, min, sec, day, month, year
+  /* Read giessTime from EEPROM */
+  int eeAdress = 0;   // EEPROM-Adress
+  EEPROM.get(eeAdress, giessTime);
+  eeAdress += sizeof(time_t); // Set position to calibration factor
 
   /* Read calibration factor from EEPROM */
-  int eeAdress = 0;   // EEPROM-Adress
   int cf;
   EEPROM.get(eeAdress, cf);
+  eeAdress += sizeof(int); // Set position to volume targets (after cf)
   flow.setCalibrationFactor(cf);
 
   /* Read volume targets from EEPROM */
   int vol;
   for (byte i = 0; i < (CHANNEL); i++) {
-    eeAdress = (i+1) * sizeof(int); // Set position to volume targets (after cf)
     EEPROM.get(eeAdress, vol);  //
+    eeAdress += sizeof(int); // Set position to next vol target
     valve[i].setVolumeTarget(vol);
   }
 
@@ -149,7 +158,7 @@ void loop() {
 
 int checkGiessen() {
   /* Check if time for giessen */
-  if ((giessFlag == -1) && (giessenHour == hour()) && (giessenMinute == minute())) {
+  if ((giessFlag == -1) && (hour(giessTime) == hour()) && (minute(giessTime) == minute())) {
     flow.resetFlowMeter();
     return 0;
   }
@@ -184,9 +193,9 @@ void statusDisplay(int gf, int ch) {
     display.print("  ");
 
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
-    display.print(giessenHour); display.print(":");
-    if(giessenMinute < 10) display.print('0');
-    display.println(giessenMinute);
+    display.print(hour(giessTime)); display.print(":");
+    if(minute(giessTime) < 10) display.print('0');
+    display.println(minute(giessTime));
     display.setTextColor(BLACK, WHITE);
 
     display.println();
@@ -246,6 +255,7 @@ void interuptPulse() {
 void calibration() {
   int cf; // calibration factor
   double vol = 10.0; // Volume dispensed for calibration
+  int eeAdress = sizeof(time_t);
 
   /* Show instructions on display */
   display.clearDisplay();
@@ -287,7 +297,7 @@ void calibration() {
   /* Calculate calibration factor and write to EEPROM */
   cf = flow.getPulseCount() / vol;
   flow.setCalibrationFactor(cf);
-  EEPROM.put(0, cf);
+  EEPROM.put(eeAdress, cf);
 }
 
 void calibrationDoseDisplay(int vol) {
@@ -316,7 +326,7 @@ void calibrationDisplay(double vol) {
 
 void setParameters() {
   int channel = 0;
-  int eeAdress;
+  int eeAdress = 0;
   delay(2 *  btnDelay);
 
   /* Set Clock */
@@ -336,11 +346,11 @@ void setParameters() {
   /* Set Timer */
   while (digitalRead(pinEnterBtn) == HIGH) {
     if (digitalRead(pinUpBtn) == 0) {
-      giessenMinute++;
+      giessTime += 60;
       delay(btnDelay);
     }
     if (digitalRead(pinDownBtn) == 0) {
-      giessenMinute--;
+      giessTime -= 60;
       delay(btnDelay);
     }
     statusDisplay(-2, -1);
@@ -368,10 +378,14 @@ void setParameters() {
   statusDisplay(-2, channel);
   }
 
+  /* Write new giessTime to EEPROM */
+  EEPROM.put(eeAdress, giessTime);
+  eeAdress += (sizeof(time_t) + sizeof(int));
+
   /* Write new volume targets to EEPROM */
   for (channel = 0; channel < CHANNEL; channel++) {
-    eeAdress = (channel+1) * sizeof(int);
     EEPROM.put(eeAdress, valve[channel].readVolumeTarget());
+    eeAdress += sizeof(int);
   }
 
   /* Show normal display */
