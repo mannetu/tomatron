@@ -37,7 +37,12 @@ int btnDelay = 200; // ButtonDelay
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
 const byte pinValve[CHANNEL] = {4, 5, 6};
 
-/* Flag for system status:  -1 (idle) / 0, 1, 2 (busy chanel) */
+/* Flag for system status:
+ *
+ *  -2 (setParameters)
+ *  -1 (idle)
+ *   0, 1, 2 (busy channel)
+ */
 int giessFlag = -1;
 int giessCallLastTime = 0;
 
@@ -57,7 +62,7 @@ void giessRoutine(void);
 void statusDisplay(int, int);
 void interuptPulse(void);
 
-void setTargetVolumes(void);
+void setParameters(void);
 
 void calibration();
 void calibrationDoseDisplay(int);
@@ -67,9 +72,7 @@ void calibrationDisplay(double);
 /****** Functions ******************/
 void setup() {
 
-  /* Setup Serial for Debug */
-  //  Serial.begin(9600);
-  Serial.println("Starte Setup");
+
 
   /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
@@ -140,9 +143,8 @@ void loop() {
 
   /* Set Target Volumes on button press */
   if (digitalRead(pinEnterBtn) == 0) {
-    setTargetVolumes();
+    setParameters();
   }
-
 }
 
 int checkGiessen() {
@@ -312,14 +314,13 @@ void calibrationDisplay(double vol) {
   display.display();
 }
 
-void setTargetVolumes() {
+void setParameters() {
   int channel = 0;
   int eeAdress;
   delay(2 *  btnDelay);
 
   /* Set Clock */
   while (digitalRead(pinEnterBtn) == HIGH) {
-
     if (digitalRead(pinUpBtn) == 0) {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
       delay(btnDelay);
@@ -334,7 +335,6 @@ void setTargetVolumes() {
 
   /* Set Timer */
   while (digitalRead(pinEnterBtn) == HIGH) {
-
     if (digitalRead(pinUpBtn) == 0) {
       giessenMinute++;
       delay(btnDelay);
@@ -347,15 +347,13 @@ void setTargetVolumes() {
   }
   delay(btnDelay);
 
-  /* Set Volume */
+  /* Set target volumes */
   while (channel < CHANNEL) {
-
     /* Choose channel */
     if (digitalRead(pinEnterBtn) == 0) {
       channel++;
       delay(btnDelay);
     }
-
     /* Adjust volume */
     if (digitalRead(pinUpBtn) == 0) {
       valve[channel].incVolumeTarget(1);
@@ -367,16 +365,15 @@ void setTargetVolumes() {
       statusDisplay(-2, channel);
       delay(btnDelay);
     }
-
   statusDisplay(-2, channel);
   }
 
-  /* Write new target to EEPROM */
+  /* Write new volume targets to EEPROM */
   for (channel = 0; channel < CHANNEL; channel++) {
     eeAdress = (channel+1) * sizeof(int);
     EEPROM.put(eeAdress, valve[channel].readVolumeTarget());
   }
 
-  /* Show status display */
+  /* Show normal display */
   statusDisplay(-1, -1);
 }
