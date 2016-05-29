@@ -18,27 +18,14 @@
 #define CHANNEL 3
 
 /* Nokia 5110 Display
-
 // Software SPI (slower updates, more flexible pin options):
 // pin 13 - Serial clock out (SCLK)
 // pin 12 - Serial data out (DIN)
 // pin 11 - Data/Command select (D/C)
-// pin 10 - LCD chip select (CS)
-// pin 9 - LCD reset (RST)
+// GND    - LCD chip select (CS)
+// pin 10 - LCD reset (RST)
 */
-Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10, 9);
-
-
-/* Hardware SPI (faster, but must use certain hardware pins):
-* SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
-* MOSI is LCD DIN - this is pin 11 on an Arduino Uno
-* pin 9 - Data/Command select (D/C)
-* pin 8 - LCD chip select (CS)
-* pin 7 - LCD reset (RST)
-*/
-//Adafruit_PCD8544 display = Adafruit_PCD8544(10, 9, 8);
-// Note with hardware SPI MISO and SS pins aren't used but will still be read
-// and written to during SPI transfer.  Be careful sharing these pins!
+Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10);
 
 /* Pins for Buttons  */
 const byte pinUpBtn = 0;      // Up/Increase-Button
@@ -48,8 +35,8 @@ int btnDelay = 200; // ButtonDelay
 
 /* Pins for FlowMeter and Valves */
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
-const byte pinValve[CHANNEL] = {4, 5, 6};
-const byte pinPump = 7;
+const byte pinValve[CHANNEL] = {6, 7, 8};
+const byte pinPump = 9;
 
 /* Flag for system status:
 *
