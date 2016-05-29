@@ -1,8 +1,8 @@
 /***********************************************
- *  Tomatron v0.1
- *
- *
- ***********************************************/
+*  Tomatron v0.1
+*
+*
+***********************************************/
 
 #include <Arduino.h>
 #define _ArduinoH_
@@ -18,13 +18,13 @@
 #define CHANNEL 3
 
 /* Nokia 5110 Display
- * Hardware SPI (faster, but must use certain hardware pins):
- * SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
- * MOSI is LCD DIN - this is pin 11 on an Arduino Uno
- * pin 9 - Data/Command select (D/C)
- * pin 8 - LCD chip select (CS)
- * pin 7 - LCD reset (RST)
- */
+* Hardware SPI (faster, but must use certain hardware pins):
+* SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
+* MOSI is LCD DIN - this is pin 11 on an Arduino Uno
+* pin 9 - Data/Command select (D/C)
+* pin 8 - LCD chip select (CS)
+* pin 7 - LCD reset (RST)
+*/
 Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7);
 
 /* Pins for Buttons  */
@@ -38,17 +38,13 @@ const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
 const byte pinValve[CHANNEL] = {4, 5, 6};
 
 /* Flag for system status:
- *
- *  -2 (setParameters)
- *  -1 (idle)
- *   0, 1, 2 (busy channel)
- */
+*
+*  -2 (setParameters)
+*  -1 (idle)
+*   0, 1, 2 (busy channel)
+*/
 int giessFlag = -1;
 int giessCallLastTime = 0;
-
-/* Default time for giessen */
-//int giessenHour = 18;
-//int giessenMinute = 30;
 time_t giessTime;
 
 /******* Objects *******************/
@@ -63,6 +59,7 @@ void statusDisplay(int, int);
 void interuptPulse(void);
 
 void setParameters(void);
+void eepromWrite();
 
 void calibration();
 void calibrationDoseDisplay(int);
@@ -107,6 +104,9 @@ void setup() {
   EEPROM.get(eeAdress, cf);
   eeAdress += sizeof(int); // Set position to volume targets (after cf)
   flow.setCalibrationFactor(cf);
+
+  /* Read plant name */
+
 
   /* Read volume targets from EEPROM */
   int vol;
@@ -167,15 +167,15 @@ int checkGiessen() {
 
 void giessRoutine() {
   /* Giessen routines */
-    valve[giessFlag].setCurrentVolume(flow.getVolume());
-    if (valve[giessFlag].dosing() == 0) {
-      flow.resetFlowMeter();
-      giessFlag++;
-    }
-    if (giessFlag > CHANNEL-1) {
-      giessFlag = -1;
-    }
+  valve[giessFlag].setCurrentVolume(flow.getVolume());
+  if (valve[giessFlag].dosing() == 0) {
+    flow.resetFlowMeter();
+    giessFlag++;
   }
+  if (giessFlag > CHANNEL-1) {
+    giessFlag = -1;
+  }
+}
 
 void statusDisplay(int gf, int ch) {
 
@@ -185,12 +185,13 @@ void statusDisplay(int gf, int ch) {
   /* Display if nothing is active */
   if (gf < 0) {   // -1 or -2
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
-    display.print(hour()); display.print(":");
+    display.print(hour());
+    display.print(":");
     if(minute() < 10) display.print('0');
     display.print(minute());
     display.setTextColor(BLACK, WHITE);
 
-    display.print("  ");
+    display.print("  >");
 
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
     display.print(hour(giessTime)); display.print(":");
@@ -203,7 +204,7 @@ void statusDisplay(int gf, int ch) {
     for (int i = 0; i < CHANNEL; i++) {
       display.setCursor(0, (8*i+20));
       display.print(valve[i].getPlant());
-      display.setCursor(25, (8*i+20));
+      display.setCursor(40, (8*i+20));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
       if (valve[i].readVolumeTarget()<100) display.print(" ");
       if (valve[i].readVolumeTarget()<10) display.print(" ");
@@ -325,69 +326,105 @@ void calibrationDisplay(double vol) {
 }
 
 void setParameters() {
+
   int channel = 0;
-  int eeAdress = 0;
+  int lastActivity = millis();
+
   delay(2 *  btnDelay);
 
   /* Set Clock */
   while (digitalRead(pinEnterBtn) == HIGH) {
+
     if (digitalRead(pinUpBtn) == 0) {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
+      lastActivity = millis();
       delay(btnDelay);
     }
+
     if (digitalRead(pinDownBtn) == 0) {
-      adjustTime(-60); // Function of time library. Adds given seconds to time.
+      adjustTime(-60);  // Function of time library. Adds given seconds to time.
+      lastActivity = millis();
       delay(btnDelay);
     }
     statusDisplay(-2, -2);
+
+    if (millis()-lastActivity > 5000) {
+      eepromWrite();
+      return;
+    }
   }
-  delay(btnDelay);
+  delay(2 * btnDelay);
 
   /* Set Timer */
   while (digitalRead(pinEnterBtn) == HIGH) {
     if (digitalRead(pinUpBtn) == 0) {
       giessTime += 60;
+      lastActivity = millis();
       delay(btnDelay);
     }
     if (digitalRead(pinDownBtn) == 0) {
       giessTime -= 60;
+      lastActivity = millis();
       delay(btnDelay);
     }
     statusDisplay(-2, -1);
+
+    if (millis()-lastActivity > 5000) {
+      eepromWrite();
+      return;
+    }
   }
-  delay(btnDelay);
+  delay(2 * btnDelay);
 
   /* Set target volumes */
   while (channel < CHANNEL) {
     /* Choose channel */
     if (digitalRead(pinEnterBtn) == 0) {
       channel++;
+      lastActivity = millis();
       delay(btnDelay);
     }
     /* Adjust volume */
     if (digitalRead(pinUpBtn) == 0) {
       valve[channel].incVolumeTarget(1);
       statusDisplay(-2, channel);
+      lastActivity = millis();
       delay(btnDelay);
     }
     if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(-1);
       statusDisplay(-2, channel);
+      lastActivity = millis();
       delay(btnDelay);
+
+
     }
-  statusDisplay(-2, channel);
+
+    statusDisplay(-2, channel);
+
+    if (millis()-lastActivity > 5000) {
+      eepromWrite();
+      return;
+    }
   }
+
+  eepromWrite();
+  return;
+}
+
+void eepromWrite() {
+  int eeAdress = 0;
+  int i;
 
   /* Write new giessTime to EEPROM */
   EEPROM.put(eeAdress, giessTime);
   eeAdress += (sizeof(time_t) + sizeof(int));
 
   /* Write new volume targets to EEPROM */
-  for (channel = 0; channel < CHANNEL; channel++) {
-    EEPROM.put(eeAdress, valve[channel].readVolumeTarget());
+  for (i = 0; i < CHANNEL; i++) {
+    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
     eeAdress += sizeof(int);
   }
-
   /* Show normal display */
   statusDisplay(-1, -1);
 }
