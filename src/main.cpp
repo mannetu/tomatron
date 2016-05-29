@@ -18,6 +18,15 @@
 #define CHANNEL 3
 
 /* Nokia 5110 Display
+
+// Software SPI (slower updates, more flexible pin options):
+// pin 7 - Serial clock out (SCLK)
+// pin 6 - Serial data out (DIN)
+// pin 5 - Data/Command select (D/C)
+// pin 4 - LCD chip select (CS)
+// pin 3 - LCD reset (RST)
+//Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+
 * Hardware SPI (faster, but must use certain hardware pins):
 * SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
 * MOSI is LCD DIN - this is pin 11 on an Arduino Uno
@@ -26,6 +35,8 @@
 * pin 7 - LCD reset (RST)
 */
 Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7);
+// Note with hardware SPI MISO and SS pins aren't used but will still be read
+// and written to during SPI transfer.  Be careful sharing these pins!
 
 /* Pins for Buttons  */
 const byte pinUpBtn = 0;      // Up/Increase-Button
