@@ -44,7 +44,7 @@ const byte pinValve[CHANNEL] = {4, 5, 6};
 *   0, 1, 2 (busy channel)
 */
 int giessFlag = -1;
-int giessCallLastTime = 0;
+long giessCallLastTime = 0;
 time_t giessTime;
 
 /******* Objects *******************/
@@ -328,9 +328,10 @@ void calibrationDisplay(double vol) {
 void setParameters() {
 
   int channel = 0;
-  int lastActivity = millis();
+  long lastActivity;
 
   delay(2 *  btnDelay);
+  lastActivity = millis();
 
   /* Set Clock */
   while (digitalRead(pinEnterBtn) == HIGH) {
@@ -346,35 +347,41 @@ void setParameters() {
       lastActivity = millis();
       delay(btnDelay);
     }
+
     statusDisplay(-2, -2);
 
-    if (millis()-lastActivity > 5000) {
+    if (millis() - lastActivity > 5000) {
       eepromWrite();
       return;
     }
   }
   delay(2 * btnDelay);
+  lastActivity = millis();
 
   /* Set Timer */
   while (digitalRead(pinEnterBtn) == HIGH) {
+
     if (digitalRead(pinUpBtn) == 0) {
       giessTime += 60;
       lastActivity = millis();
       delay(btnDelay);
     }
+
     if (digitalRead(pinDownBtn) == 0) {
       giessTime -= 60;
       lastActivity = millis();
       delay(btnDelay);
     }
+
     statusDisplay(-2, -1);
 
-    if (millis()-lastActivity > 5000) {
+    if (millis() - lastActivity > 5000) {
       eepromWrite();
       return;
     }
   }
   delay(2 * btnDelay);
+  lastActivity = millis();
 
   /* Set target volumes */
   while (channel < CHANNEL) {
@@ -396,13 +403,11 @@ void setParameters() {
       statusDisplay(-2, channel);
       lastActivity = millis();
       delay(btnDelay);
-
-
     }
 
     statusDisplay(-2, channel);
 
-    if (millis()-lastActivity > 5000) {
+    if (millis() - lastActivity > 5000) {
       eepromWrite();
       return;
     }
