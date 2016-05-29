@@ -75,11 +75,11 @@ void setup() {
   /* Set clock */
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
-  /*** ONLY FOR INITIAL EEPROM PROGRAMMING */
-    giessTime = now() + 3600;
-    EEPROM.put(0, giessTime);
-    EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
-  /*****************************************/
+  /*** ONLY FOR INITIAL EEPROM PROGRAMMING ****************************
+  giessTime = now() + 3600;
+  EEPROM.put(0, giessTime);
+  EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
+  *********************************************************************/
 
   /* Set pin and interrupt configuration for flow meter */
   flow.setPin(pinFlowMeter);
@@ -187,7 +187,7 @@ void statusDisplay(int gf, int ch) {
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
     display.print(hour()); display.print(":");
     if(minute() < 10) display.print('0');
-    display.print(minute()); display.print(":");
+    display.print(minute());
     display.setTextColor(BLACK, WHITE);
 
     display.print("  ");
@@ -207,7 +207,7 @@ void statusDisplay(int gf, int ch) {
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
       if (valve[i].readVolumeTarget()<100) display.print(" ");
       if (valve[i].readVolumeTarget()<10) display.print(" ");
-      display.println(valve[i].readVolumeTarget()); display.print(" L");
+      display.print(valve[i].readVolumeTarget()); display.println(" L");
       display.setTextColor(BLACK, WHITE);
     }
     display.display(); // show screen
