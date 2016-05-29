@@ -15,7 +15,7 @@
 #include "Water.h"
 
 /* Water channels */
-#define CHANNEL 3
+#define CHANNEL 4
 
 /* Nokia 5110 Display
 // Software SPI (slower updates, more flexible pin options):
@@ -31,11 +31,12 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10);
 const byte pinUpBtn = 0;      // Up/Increase-Button
 const byte pinDownBtn = 1;    // Down/Decrease-Button
 const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
-int btnDelay = 200; // ButtonDelay
+const byte pinManualBtn = 3;  // Button for Manual Mode
+const byte btnDelay = 200; // ButtonDelay
 
 /* Pins for FlowMeter and Valves */
-const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
-const byte pinValve[CHANNEL] = {6, 7, 8};
+const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
+const byte pinValve[CHANNEL] = {5, 6, 7, 8};
 const byte pinPump = 9;
 
 /* Flag for system status:
@@ -190,7 +191,7 @@ void statusDisplay(int gf, int ch) {
   display.clearDisplay();
   display.setCursor(0, 0);
 
-  /* Display if nothing is active */
+  /* Display if nothing is active or parameter set mode */
   if (gf < 0) {   // -1 or -2
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
     display.print(hour());
@@ -210,13 +211,14 @@ void statusDisplay(int gf, int ch) {
     display.println();
 
     for (int i = 0; i < CHANNEL; i++) {
-      display.setCursor(0, (8*i+20));
+      display.setCursor(0, (8*i+15));
       display.print(valve[i].getPlant());
-      display.setCursor(40, (8*i+20));
+      display.setCursor(50, (8*i+15));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
       if (valve[i].readVolumeTarget()<100) display.print(" ");
       if (valve[i].readVolumeTarget()<10) display.print(" ");
-      display.print(valve[i].readVolumeTarget()); display.println(" L");
+      display.print(valve[i].readVolumeTarget());
+      display.println(" L");
       display.setTextColor(BLACK, WHITE);
     }
     display.display(); // show screen
@@ -224,36 +226,53 @@ void statusDisplay(int gf, int ch) {
   }
 
   /* Display during active giessing */
-  display.print("Giessen! "); display.println(gf+1);
-  display.print("Pulse: "); display.println(flow.getPulseCount());
-  for (int i = 0; i < CHANNEL; i++) {
+  if (gf > -1) {
 
-    if (i < gf+1)
-    {
-      display.setCursor(0, (8*i+20));
-      display.print(valve[i].getPlant());
-      display.setCursor(14, (8*i+20));
-      if (valve[i].readVolumeTarget()<100) display.print(" ");
-      if (valve[i].readVolumeTarget()<10) display.print(" ");
-      display.print(valve[i].readVolumeTarget()); display.print(" L");
-      display.setCursor(49, (8*i+20));
-      if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<100) display.print(" ");
-      if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<10) display.print(" ");
-      display.print(100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
-      display.println("%");
+    display.print(hour());
+    display.print(":");
+    if(minute() < 10) display.print('0');
+    display.print(minute());
+    display.print("  ");
+    display.setTextColor(WHITE, BLACK);
+    display.println("WASSER");
+    display.setTextColor(BLACK, WHITE);
+    display.println(flow.getPulseCount());
+    for (int i = 0; i < CHANNEL; i++) {
+
+      if (i == gf)
+      {
+        display.setTextColor(WHITE, BLACK);
+        display.setCursor(0, (8*i+15));
+        display.print(valve[i].getPlant());
+        display.setCursor(50, (8*i+15));
+        if (valve[i].readVolumeTarget()<100) display.print(" ");
+        if (valve[i].readVolumeTarget()<10) display.print(" ");
+        display.print(valve[i].readVolumeTarget());
+        display.println(" L");
+        display.setTextColor(BLACK, WHITE);
+        /*
+        display.setCursor(55, (8*i+15));
+        if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<100) display.print(" ");
+        if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<10) display.print(" ");
+        display.print(100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
+        display.println("%");
+        */
+      }
+      else
+      {
+        display.setCursor(0, (8*i+15));
+        display.print(valve[i].getPlant());
+        display.setCursor(50, (8*i+15));
+        if (valve[i].readVolumeTarget()<100) display.print(" ");
+        if (valve[i].readVolumeTarget()<10) display.print(" ");
+        display.print(valve[i].readVolumeTarget());
+        display.println(" L");
+
+      }
     }
-    else
-    {
-      display.setCursor(0, (8*i+20));
-      display.print(valve[i].getPlant());
-      display.setCursor(14, (8*i+20));
-      if (valve[i].readVolumeTarget()<100) display.print(" ");
-      if (valve[i].readVolumeTarget()<10) display.print(" ");
-      display.print(valve[i].readVolumeTarget()); display.println(" L");
-    }
+    display.display(); // show screen
+    return;
   }
-  display.display(); // show screen
-  return;
 }
 
 void interuptPulse() {
