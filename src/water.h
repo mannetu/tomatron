@@ -25,6 +25,7 @@ class Pump {
     byte pin;
   public:
     void setPin(byte);
+    byte getPin(void);
     void start(void);
     void stop(void);
 };

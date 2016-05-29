@@ -48,6 +48,10 @@ void Pump::setPin(byte p) {
  pin = p;
 }
 
+byte Pump::getPin(void) {
+ return pin;
+}
+
 void Pump::start(void) {
  digitalWrite(pin, HIGH);
 }

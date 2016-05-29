@@ -74,7 +74,7 @@ void statusDisplay(int, int);
 void interuptPulse(void);
 
 void setParameters(void);
-void eepromWrite();
+void writeParameters();
 
 void calibration();
 void calibrationDoseDisplay(int);
@@ -100,7 +100,7 @@ void setup() {
 
   /* Set pin for pump */
   pump.setPin(pinPump);
-  pinMode(pinPump, OUTPUT);
+  pinMode(pump.getPin(), OUTPUT);
 
   /* Set pin configuration for valves */
   for (byte i = 0; i < CHANNEL; i++) {
@@ -294,11 +294,12 @@ void calibration() {
   while (digitalRead(pinEnterBtn)) { };
 
   /* Dispense volume vol */
+  pump.start();
   while (valve[0].dosing(int (vol)) > 0) {
     valve[0].setCurrentVolume(flow.getVolume());
     calibrationDoseDisplay(valve[0].readCurrentVolume());
   }
-
+  pump.stop();
   /* Adjust exact volume with Up/Down-Buttons and press Enter */
   calibrationDisplay(double(valve[0].readCurrentVolume()));
   vol = double(valve[0].readCurrentVolume());
@@ -372,7 +373,7 @@ void setParameters() {
     statusDisplay(-2, -2);
 
     if (millis() - lastActivity > 5000) {
-      eepromWrite();
+      writeParameters();
       return;
     }
   }
@@ -397,7 +398,7 @@ void setParameters() {
     statusDisplay(-2, -1);
 
     if (millis() - lastActivity > 5000) {
-      eepromWrite();
+      writeParameters();
       return;
     }
   }
@@ -429,16 +430,16 @@ void setParameters() {
     statusDisplay(-2, channel);
 
     if (millis() - lastActivity > 5000) {
-      eepromWrite();
+      writeParameters();
       return;
     }
   }
 
-  eepromWrite();
+  writeParameters();
   return;
 }
 
-void eepromWrite() {
+void writeParameters() {
   int eeAdress = 0;
   int i;
 
