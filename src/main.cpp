@@ -20,21 +20,23 @@
 /* Nokia 5110 Display
 
 // Software SPI (slower updates, more flexible pin options):
-// pin 7 - Serial clock out (SCLK)
-// pin 6 - Serial data out (DIN)
-// pin 5 - Data/Command select (D/C)
-// pin 4 - LCD chip select (CS)
-// pin 3 - LCD reset (RST)
-//Adafruit_PCD8544 display = Adafruit_PCD8544(7, 6, 5, 4, 3);
+// pin 13 - Serial clock out (SCLK)
+// pin 12 - Serial data out (DIN)
+// pin 11 - Data/Command select (D/C)
+// pin 10 - LCD chip select (CS)
+// pin 9 - LCD reset (RST)
+*/
+Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10, 9);
 
-* Hardware SPI (faster, but must use certain hardware pins):
+
+/* Hardware SPI (faster, but must use certain hardware pins):
 * SCK is LCD serial clock (SCLK) - this is pin 13 on Arduino Uno
 * MOSI is LCD DIN - this is pin 11 on an Arduino Uno
 * pin 9 - Data/Command select (D/C)
 * pin 8 - LCD chip select (CS)
 * pin 7 - LCD reset (RST)
 */
-Adafruit_PCD8544 display = Adafruit_PCD8544(9, 8, 7);
+//Adafruit_PCD8544 display = Adafruit_PCD8544(10, 9, 8);
 // Note with hardware SPI MISO and SS pins aren't used but will still be read
 // and written to during SPI transfer.  Be careful sharing these pins!
 
@@ -47,6 +49,7 @@ int btnDelay = 200; // ButtonDelay
 /* Pins for FlowMeter and Valves */
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1
 const byte pinValve[CHANNEL] = {4, 5, 6};
+const byte pinPump = 7;
 
 /* Flag for system status:
 *
@@ -60,6 +63,7 @@ time_t giessTime;
 
 /******* Objects *******************/
 class Flowmeter flow;
+class Pump pump;
 class Magnetvalves valve[CHANNEL];
 
 
@@ -93,6 +97,10 @@ void setup() {
   flow.setPin(pinFlowMeter);
   pinMode(flow.getPin(), INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(flow.getPin()), interuptPulse, FALLING);
+
+  /* Set pin for pump */
+  pump.setPin(pinPump);
+  pinMode(pinPump, OUTPUT);
 
   /* Set pin configuration for valves */
   for (byte i = 0; i < CHANNEL; i++) {
@@ -178,12 +186,14 @@ int checkGiessen() {
 
 void giessRoutine() {
   /* Giessen routines */
+  pump.start();
   valve[giessFlag].setCurrentVolume(flow.getVolume());
   if (valve[giessFlag].dosing() == 0) {
     flow.resetFlowMeter();
     giessFlag++;
   }
   if (giessFlag > CHANNEL-1) {
+    pump.stop();
     giessFlag = -1;
   }
 }

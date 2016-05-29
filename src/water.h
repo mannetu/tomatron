@@ -20,6 +20,15 @@ class Flowmeter {
     byte  getPin(void);
 };
 
+class Pump {
+  private:
+    byte pin;
+  public:
+    void setPin(byte);
+    void start(void);
+    void stop(void);
+};
+
 
 class Magnetvalves {
   private:

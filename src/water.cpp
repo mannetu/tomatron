@@ -42,8 +42,19 @@ byte Flowmeter::getPin() {
   return pin;
 }
 
+/******* Pump Member Functions *******/
 
+void Pump::setPin(byte p) {
+ pin = p;
+}
 
+void Pump::start(void) {
+ digitalWrite(pin, HIGH);
+}
+
+void Pump::stop(void) {
+ digitalWrite(pin, LOW);
+}
 
 /******* Magnetvalves Member Functions *******/
 
