@@ -74,6 +74,10 @@ byte Magnetvalves::readVolumeTarget() {
   return targetV;
 }
 
+void Magnetvalves::setPlant(char *name) {
+  strncpy(plant, name, 8);
+}
+
 char * Magnetvalves::getPlant() {
   return plant;
 }

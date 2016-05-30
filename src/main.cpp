@@ -16,6 +16,7 @@
 
 /* Water channels */
 #define CHANNEL 4
+#define DISPLAY_UPDATE 250
 
 /* Nokia 5110 Display
 // Software SPI (slower updates, more flexible pin options):
@@ -38,6 +39,7 @@ const byte btnDelay = 200; // ButtonDelay
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
 const byte pinValve[CHANNEL] = {5, 6, 7, 8};
 const byte pinPump = 9;
+
 
 /* Flag for system status:
 *
@@ -113,7 +115,7 @@ void setup() {
   flow.setCalibrationFactor(cf);
 
   /* Read plant name */
-
+//  valve[0].setPlant(plant0);
 
   /* Read volume targets from EEPROM */
   int vol;
@@ -152,7 +154,7 @@ void loop() {
   if (giessFlag > -1) giessRoutine();
 
   /* Update Display */
-  if ((millis() - giessCallLastTime > 500)) {
+  if ((millis() - giessCallLastTime > DISPLAY_UPDATE)) {
     statusDisplay(giessFlag, -1);
     giessCallLastTime = millis();
   }
@@ -188,6 +190,7 @@ void giessRoutine() {
 
 void statusDisplay(int gf, int ch) {
 
+  static byte blink_flag = 1;
   display.clearDisplay();
   display.setCursor(0, 0);
 
@@ -232,13 +235,20 @@ void statusDisplay(int gf, int ch) {
     display.print(":");
     if(minute() < 10) display.print('0');
     display.print(minute());
-    display.print("  ");
+    display.print(" ");
     display.setTextColor(WHITE, BLACK);
-    display.println("WASSER");
+
+    /* Blink Wasser */
+    if (blink_flag++ < 4) display.print(" WASSER");
+    blink_flag %= 6;
     display.setTextColor(BLACK, WHITE);
+    display.println();
+
+    /* Print pulse count */
     display.println(flow.getPulseCount());
     for (int i = 0; i < CHANNEL; i++) {
 
+    /* Display active channel */
       if (i == gf)
       {
         display.setTextColor(WHITE, BLACK);
@@ -259,6 +269,7 @@ void statusDisplay(int gf, int ch) {
         */
       }
       else
+      /* Display idle channel */
       {
         display.setCursor(0, (8*i+15));
         display.print(valve[i].getPlant());
@@ -278,7 +289,6 @@ void statusDisplay(int gf, int ch) {
 void interuptPulse() {
   flow.pulse();
 }
-
 
 void calibration() {
   int cf; // calibration factor

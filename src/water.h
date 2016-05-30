@@ -36,12 +36,13 @@ class Magnetvalves {
     byte pin;
     byte targetV;
     byte currV;
-    char plant[10];
+    char *plant;
   public:
     static byte flag;
     void setVolumeTarget(int);
     void incVolumeTarget(int);
     byte  readVolumeTarget(void);
+    void setPlant(char *name);
     char * getPlant(void);
     void setPin(byte);
     byte  getPin(void);
