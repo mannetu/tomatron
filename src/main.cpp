@@ -29,17 +29,18 @@
 Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10);
 
 /* Pins for Buttons  */
-const byte pinUpBtn = 0;      // Up/Increase-Button
-const byte pinDownBtn = 1;    // Down/Decrease-Button
-const byte pinEnterBtn = 2;   // Enter-Button @ Interupt 0
+const byte pinUpBtn =     0;      // Up/Increase-Button
+const byte pinDownBtn =   1;    // Down/Decrease-Button
+const byte pinEnterBtn =  2;   // Enter-Button @ Interupt 0
 const byte pinManualBtn = 3;  // Button for Manual Mode
-const byte btnDelay = 200; // ButtonDelay
+const byte btnDelay =     200; // ButtonDelay
 
 /* Pins for FlowMeter and Valves */
 const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
+const byte pinPump =      9;
 const byte pinValve[CHANNEL] = {5, 6, 7, 8};
-const byte pinPump = 9;
 
+char plantName[CHANNEL][9] = {"Tomaten", "Gurken", "Paprika", "Bohnen"};
 
 /* Flag for system status:
 *
@@ -115,7 +116,9 @@ void setup() {
   flow.setCalibrationFactor(cf);
 
   /* Read plant name */
-//  valve[0].setPlant(plant0);
+  for (byte i = 0; i < (CHANNEL); i++) {
+    valve[i].setPlant(plantName[i]);
+  }
 
   /* Read volume targets from EEPROM */
   int vol;
@@ -197,22 +200,24 @@ void statusDisplay(int gf, int ch) {
   /* Display if nothing is active or parameter set mode */
   if (gf < 0) {   // -1 or -2
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
+
+    /* Print current time */
     display.print(hour());
     display.print(":");
     if(minute() < 10) display.print('0');
     display.print(minute());
     display.setTextColor(BLACK, WHITE);
 
-    display.print("  >");
-
+    /* Print giess time */
+    display.setCursor(40, 0);
+    display.print(">>");
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
     display.print(hour(giessTime)); display.print(":");
     if(minute(giessTime) < 10) display.print('0');
-    display.println(minute(giessTime));
+    display.print(minute(giessTime));
     display.setTextColor(BLACK, WHITE);
 
-    display.println();
-
+    /* Print channel information */
     for (int i = 0; i < CHANNEL; i++) {
       display.setCursor(0, (8*i+15));
       display.print(valve[i].getPlant());
@@ -231,42 +236,47 @@ void statusDisplay(int gf, int ch) {
   /* Display during active giessing */
   if (gf > -1) {
 
+    /*
     display.print(hour());
     display.print(":");
     if(minute() < 10) display.print('0');
     display.print(minute());
     display.print(" ");
+    */
+
     display.setTextColor(WHITE, BLACK);
 
     /* Blink Wasser */
-    if (blink_flag++ < 4) display.print(" WASSER");
+    if (blink_flag++ < 4) display.print(" WASSER ");
     blink_flag %= 6;
     display.setTextColor(BLACK, WHITE);
-    display.println();
 
     /* Print pulse count */
-    display.println(flow.getPulseCount());
-    for (int i = 0; i < CHANNEL; i++) {
+    //display.println(flow.getPulseCount());
 
+    display.setCursor(50, 0);
+    if (valve[gf].readCurrentVolume() < 100) display.print(" ");
+    if (valve[gf].readCurrentVolume() < 10) display.print(" ");
+    display.print(valve[gf].readCurrentVolume());
+    display.print(" L");
+
+
+
+    for (int i = 0; i < CHANNEL; i++) {
     /* Display active channel */
       if (i == gf)
       {
         display.setTextColor(WHITE, BLACK);
         display.setCursor(0, (8*i+15));
         display.print(valve[i].getPlant());
+        display.print("   ");
         display.setCursor(50, (8*i+15));
         if (valve[i].readVolumeTarget()<100) display.print(" ");
         if (valve[i].readVolumeTarget()<10) display.print(" ");
         display.print(valve[i].readVolumeTarget());
         display.println(" L");
         display.setTextColor(BLACK, WHITE);
-        /*
-        display.setCursor(55, (8*i+15));
-        if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<100) display.print(" ");
-        if ((100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget())<10) display.print(" ");
-        display.print(100 * valve[i].readCurrentVolume() / valve[i].readVolumeTarget());
-        display.println("%");
-        */
+
       }
       else
       /* Display idle channel */
