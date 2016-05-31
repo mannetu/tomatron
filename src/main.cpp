@@ -24,9 +24,12 @@
 *  -1 (idle)
 *   0, 1, 2 (busy channel)
 */
-int giessFlag = -1;
-long giessCallLastTime = 0;
-time_t giessTime;
+
+struct s_giess {
+  int flag = -1;
+  long lastCall = 0;
+  time_t time;
+} giess;
 
 /* Nokia 5110 Display
 // Software SPI (slower updates, more flexible pin options):
@@ -91,7 +94,7 @@ void setup() {
 
   /* Read giessTime from EEPROM */
   int eeAdress = 0;   // EEPROM-Adress
-  EEPROM.get(eeAdress, giessTime);
+  EEPROM.get(eeAdress, giess.time);
   eeAdress += sizeof(time_t); // Set position to calibration factor
 
   /* Read calibration factor from EEPROM */
@@ -129,15 +132,15 @@ void setup() {
 void loop() {
 
   /* Check if it is time for giessen */
-  if (giessFlag == -1) giessFlag = checkGiessen();
+  if (giess.flag == -1) giess.flag = checkGiessen();
 
   /* If so, then call giessRoutine until giessen is done */
-  if (giessFlag > -1) giessRoutine();
+  if (giess.flag > -1) giessRoutine();
 
   /* Update Display every DISPLAY_UPDATE ms*/
-  if ((millis() - giessCallLastTime > DISPLAY_UPDATE)) {
-    statusDisplay(giessFlag, -1);
-    giessCallLastTime = millis();
+  if ((millis() - giess.lastCall > DISPLAY_UPDATE)) {
+    statusDisplay(giess.flag, -1);
+    giess.lastCall = millis();
   }
 
   /* On enter btn press, start mode to set time, giessTime and target volumes */
@@ -148,7 +151,7 @@ void loop() {
 
 int checkGiessen() {
   /* Check if time for giessen */
-  if ((giessFlag == -1) && (hour(giessTime) == hour()) && (minute(giessTime) == minute())) {
+  if ((giess.flag == -1) && (hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
     flow.resetFlowMeter();
     return 0;
   }
@@ -159,16 +162,16 @@ void giessRoutine() {
   /* Giessen routines */
   if (pump.start()) delay(2000); // wait for 2s if pump had to be started
 
-  valve[giessFlag].setCurrentVolume(flow.getVolume());
+  valve[giess.flag].setCurrentVolume(flow.getVolume());
 
-  if (valve[giessFlag].dosing() == 0) {
+  if (valve[giess.flag].dosing() == 0) {
     flow.resetFlowMeter();
-    giessFlag++; delay(100);
+    giess.flag++; delay(100);
   }
 
-  if (giessFlag > CHANNEL-1) {
+  if (giess.flag > CHANNEL-1) {
     pump.stop();
-    giessFlag = -1;
+    giess.flag = -1;
   }
 }
 
@@ -193,9 +196,9 @@ void statusDisplay(int gf, int ch) {
     display.setCursor(40, 0);
     display.print(">>");
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
-    display.print(hour(giessTime)); display.print(":");
-    if(minute(giessTime) < 10) display.print('0');
-    display.print(minute(giessTime));
+    display.print(hour(giess.time)); display.print(":");
+    if(minute(giess.time) < 10) display.print('0');
+    display.print(minute(giess.time));
     display.setTextColor(BLACK, WHITE);
 
     /* Print channel information */
@@ -391,13 +394,13 @@ void setParameters() {
   while (digitalRead(pinEnterBtn) == HIGH) {
 
     if (digitalRead(pinUpBtn) == 0) {
-      giessTime += 60;
+      giess.time += 60;
       lastActivity = millis();
       delay(btnDelay);
     }
 
     if (digitalRead(pinDownBtn) == 0) {
-      giessTime -= 60;
+      giess.time -= 60;
       lastActivity = millis();
       delay(btnDelay);
     }
@@ -451,7 +454,7 @@ void writeParameters() {
   int i;
 
   /* Write new giessTime to EEPROM */
-  EEPROM.put(eeAdress, giessTime);
+  EEPROM.put(eeAdress, giess.time);
   eeAdress += (sizeof(time_t) + sizeof(int));
 
   /* Write new volume targets to EEPROM */
