@@ -46,12 +46,9 @@ byte Flowmeter::getPin() {
 
 /******* Pump Member Functions *******/
 
-void Pump::setPin(byte p) {
- pin = p;
-}
-
-byte Pump::getPin(void) {
- return pin;
+Pump::Pump(byte p) {
+  pin = p;
+  pinMode(pin, OUTPUT);
 }
 
 void Pump::start(void) {

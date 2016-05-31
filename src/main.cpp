@@ -18,6 +18,16 @@
 #define CHANNEL 4
 #define DISPLAY_UPDATE 250
 
+/* Flag for system status:
+*
+*  -2 (setParameters)
+*  -1 (idle)
+*   0, 1, 2 (busy channel)
+*/
+int giessFlag = -1;
+long giessCallLastTime = 0;
+time_t giessTime;
+
 /* Nokia 5110 Display
 // Software SPI (slower updates, more flexible pin options):
 // pin 13 - Serial clock out (SCLK)
@@ -35,33 +45,18 @@ const byte pinEnterBtn =  2;   // Enter-Button @ Interupt 0
 const byte pinManualBtn = 3;  // Button for Manual Mode
 const byte btnDelay =     200; // ButtonDelay
 
-/* Pins for FlowMeter and Valves */
-
-const byte pinPump =      9;
-
-
-/* Flag for system status:
-*
-*  -2 (setParameters)
-*  -1 (idle)
-*   0, 1, 2 (busy channel)
-*/
-int giessFlag = -1;
-long giessCallLastTime = 0;
-time_t giessTime;
-
 /******* Objects *******************/
-class Flowmeter flow = {3}; // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
-class Pump pump;
-class Magnetvalves valve[CHANNEL] = {
+Flowmeter flow = Flowmeter(3); // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
 
+Magnetvalves valve[CHANNEL] =
+{
   Magnetvalves(5, "Tomaten"),
   Magnetvalves(6, "Gurken"),
   Magnetvalves(7, "Paprika"),
-  Magnetvalves(8, "Bohnen"),
-
+  Magnetvalves(8, "Bohnen")
 };
 
+Pump pump = Pump(9);
 
 /******* Function prototypes *******/
 int checkGiessen(void);
@@ -92,9 +87,6 @@ void setup() {
   /* Set pin and interrupt configuration for flow meter */
   attachInterrupt(digitalPinToInterrupt(flow.getPin()), interuptPulse, FALLING);
 
-  /* Set pin for pump */
-  pump.setPin(pinPump);
-  pinMode(pump.getPin(), OUTPUT);
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT_PULLUP);
