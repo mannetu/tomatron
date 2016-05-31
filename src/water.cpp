@@ -51,8 +51,10 @@ Pump::Pump(byte p) {
   pinMode(pin, OUTPUT);
 }
 
-void Pump::start(void) {
- digitalWrite(pin, HIGH);
+byte Pump::start(void) {
+  if (digitalRead(pin)) return 0;
+  digitalWrite(pin, HIGH);
+  return 1;
 }
 
 void Pump::stop(void) {

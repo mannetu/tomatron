@@ -62,7 +62,7 @@ Pump pump = Pump(9);
 int checkGiessen(void);
 void giessRoutine(void);
 void statusDisplay(int, int);
-void interuptPulse(void);
+//void interuptPulse(void);
 
 void setParameters(void);
 void writeParameters();
@@ -75,14 +75,14 @@ void calibrationDisplay(double);
 /****** Functions ******************/
 void setup() {
 
-  /* Set clock */
-  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
-
   /*** ONLY FOR INITIAL EEPROM PROGRAMMING ****************************
   giessTime = now() + 3600;
   EEPROM.put(0, giessTime);
   EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
   *********************************************************************/
+
+  /* Set clock */
+  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT_PULLUP);
@@ -113,8 +113,6 @@ void setup() {
   display.setContrast(50);
   display.setTextSize(1);
   display.setTextColor(BLACK);
-  display.setCursor(0,0);
-  display.display(); // show splashscreen
   delay(500);
 
   /* If Enter is pressed at boot, enter calibration mode */
@@ -136,13 +134,13 @@ void loop() {
   /* If so, then call giessRoutine until giessen is done */
   if (giessFlag > -1) giessRoutine();
 
-  /* Update Display */
+  /* Update Display every DISPLAY_UPDATE ms*/
   if ((millis() - giessCallLastTime > DISPLAY_UPDATE)) {
     statusDisplay(giessFlag, -1);
     giessCallLastTime = millis();
   }
 
-  /* Set Target Volumes on button press */
+  /* On enter btn press, start mode to set time, giessTime and target volumes */
   if (digitalRead(pinEnterBtn) == 0) {
     setParameters();
   }
@@ -159,12 +157,15 @@ int checkGiessen() {
 
 void giessRoutine() {
   /* Giessen routines */
-  pump.start();
+  if (pump.start()) delay(2000); // wait for 2s if pump had to be started
+
   valve[giessFlag].setCurrentVolume(flow.getVolume());
+
   if (valve[giessFlag].dosing() == 0) {
     flow.resetFlowMeter();
-    giessFlag++;
+    giessFlag++; delay(100);
   }
+
   if (giessFlag > CHANNEL-1) {
     pump.stop();
     giessFlag = -1;

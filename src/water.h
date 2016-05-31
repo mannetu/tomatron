@@ -25,7 +25,7 @@ class Pump {
     byte pin;
   public:
     Pump(byte);
-    void start(void);
+    byte start(void);
     void stop(void);
 };
 
