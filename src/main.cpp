@@ -36,11 +36,9 @@ const byte pinManualBtn = 3;  // Button for Manual Mode
 const byte btnDelay =     200; // ButtonDelay
 
 /* Pins for FlowMeter and Valves */
-const byte pinFlowMeter = 3;  // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
-const byte pinPump =      9;
-const byte pinValve[CHANNEL] = {5, 6, 7, 8};
 
-char plantName[CHANNEL][9] = {"Tomaten", "Gurken", "Paprika", "Bohnen"};
+const byte pinPump =      9;
+
 
 /* Flag for system status:
 *
@@ -53,9 +51,16 @@ long giessCallLastTime = 0;
 time_t giessTime;
 
 /******* Objects *******************/
-class Flowmeter flow;
+class Flowmeter flow = {3}; // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
 class Pump pump;
-class Magnetvalves valve[CHANNEL];
+class Magnetvalves valve[CHANNEL] = {
+
+  Magnetvalves(5, "Tomaten"),
+  Magnetvalves(6, "Gurken"),
+  Magnetvalves(7, "Paprika"),
+  Magnetvalves(8, "Bohnen"),
+
+};
 
 
 /******* Function prototypes *******/
@@ -85,19 +90,11 @@ void setup() {
   *********************************************************************/
 
   /* Set pin and interrupt configuration for flow meter */
-  flow.setPin(pinFlowMeter);
-  pinMode(flow.getPin(), INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(flow.getPin()), interuptPulse, FALLING);
 
   /* Set pin for pump */
   pump.setPin(pinPump);
   pinMode(pump.getPin(), OUTPUT);
-
-  /* Set pin configuration for valves */
-  for (byte i = 0; i < CHANNEL; i++) {
-    valve[i].setPin(pinValve[i]);
-    pinMode(valve[i].getPin(), OUTPUT);
-  }
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT_PULLUP);
@@ -114,11 +111,6 @@ void setup() {
   EEPROM.get(eeAdress, cf);
   eeAdress += sizeof(int); // Set position to volume targets (after cf)
   flow.setCalibrationFactor(cf);
-
-  /* Read plant name */
-  for (byte i = 0; i < (CHANNEL); i++) {
-    valve[i].setPlant(plantName[i]);
-  }
 
   /* Read volume targets from EEPROM */
   int vol;

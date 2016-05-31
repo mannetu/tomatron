@@ -12,6 +12,11 @@ statusFlag dosingFlag = IDLE;
 
 /******* Flowmeter Member Functions *******/
 
+Flowmeter::Flowmeter(byte p) { // Constructor
+    pin = p;
+    pinMode(pin, INPUT_PULLUP);
+}
+
 void Flowmeter::setCalibrationFactor(int cf) {
   calibrationFactor = cf;
 }
@@ -34,9 +39,6 @@ void Flowmeter::pulse(void) {
 }
 
 
-void Flowmeter::setPin(byte p) {
-    pin = p;
-}
 
 byte Flowmeter::getPin() {
   return pin;
@@ -62,6 +64,15 @@ void Pump::stop(void) {
 
 /******* Magnetvalves Member Functions *******/
 
+Magnetvalves::Magnetvalves(byte p, const char *name) {
+
+  pin = p;
+  /* Set pin configuration for valves */
+  pinMode(pin, OUTPUT);
+  strncpy(plant, name, 8);
+
+}
+
 void Magnetvalves::setVolumeTarget(int v) {
   targetV = v;
 }
@@ -74,20 +85,8 @@ byte Magnetvalves::readVolumeTarget() {
   return targetV;
 }
 
-void Magnetvalves::setPlant(const char *name) {
-  strncpy(plant, name, 8);
-}
-
 char * Magnetvalves::getPlant() {
   return plant;
-}
-
-void Magnetvalves::setPin(byte p) {
-    pin = p;
-  }
-
-byte Magnetvalves::getPin() {
-  return pin;
 }
 
 byte Magnetvalves::dosing(void) {

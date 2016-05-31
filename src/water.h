@@ -11,12 +11,12 @@ class Flowmeter {
     int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
     long pulseCount;
   public:
+    Flowmeter(byte); // Constructor
     void setCalibrationFactor(int);
     long  getPulseCount();
     void resetFlowMeter(void);
     byte  getVolume(void);
     void pulse(void);
-    void setPin(byte);
     byte  getPin(void);
 };
 
@@ -38,14 +38,12 @@ class Magnetvalves {
     byte currV;
     char plant[9];
   public:
+    Magnetvalves(byte, const char *); // Constructor
     static byte flag;
     void setVolumeTarget(int);
     void incVolumeTarget(int);
     byte  readVolumeTarget(void);
-    void setPlant(const char *);
     char * getPlant(void);
-    void setPin(byte);
-    byte  getPin(void);
     byte  dosing(void);
     byte  dosing(byte);
     void setCurrentVolume(int);
