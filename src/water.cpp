@@ -9,12 +9,14 @@
 #endif
 
 statusFlag dosingFlag = IDLE;
+void interuptPulse();
 
 /******* Flowmeter Member Functions *******/
 
 Flowmeter::Flowmeter(byte p) { // Constructor
     pin = p;
     pinMode(pin, INPUT_PULLUP);
+    attachInterrupt(1, interuptPulse, FALLING);
 }
 
 void Flowmeter::setCalibrationFactor(int cf) {
@@ -37,8 +39,6 @@ byte Flowmeter::getVolume() {
 void Flowmeter::pulse(void) {
   pulseCount++;
 }
-
-
 
 byte Flowmeter::getPin() {
   return pin;

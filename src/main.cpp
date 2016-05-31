@@ -46,7 +46,7 @@ const byte pinManualBtn = 3;  // Button for Manual Mode
 const byte btnDelay =     200; // ButtonDelay
 
 /******* Objects *******************/
-Flowmeter flow = Flowmeter(3); // Hall-Sensor @ Interupt 1 (must be Pin 3 !!)
+Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin must not be changed!
 
 Magnetvalves valve[CHANNEL] =
 {
@@ -83,10 +83,6 @@ void setup() {
   EEPROM.put(0, giessTime);
   EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
   *********************************************************************/
-
-  /* Set pin and interrupt configuration for flow meter */
-  attachInterrupt(digitalPinToInterrupt(flow.getPin()), interuptPulse, FALLING);
-
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT_PULLUP);
