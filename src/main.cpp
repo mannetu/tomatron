@@ -131,16 +131,20 @@ void setup() {
 
 void loop() {
 
-  /* Check if it is time for giessen */
-  if (giess.flag == -1) giess.flag = checkGiessen();
-
-  /* If so, then call giessRoutine until giessen is done */
-  if (giess.flag > -1) giessRoutine();
+  /* Check if it is time for giessing */
+  if (giess.flag == -1) {
+    giess.flag = checkGiessen();
+  }
 
   /* Update Display every DISPLAY_UPDATE ms*/
   if ((millis() - giess.lastCall > DISPLAY_UPDATE)) {
     statusDisplay(giess.flag, -1);
     giess.lastCall = millis();
+  }
+
+  /* If giessing, then check progress */
+  if (giess.flag > -1) {
+    giessRoutine();
   }
 
   /* On enter btn press, start mode to set time, giessTime and target volumes */
@@ -219,14 +223,6 @@ void statusDisplay(int gf, int ch) {
 
   /* Display during active giessing */
   if (gf > -1) {
-
-    /*
-    display.print(hour());
-    display.print(":");
-    if(minute() < 10) display.print('0');
-    display.print(minute());
-    display.print(" ");
-    */
 
     display.setTextColor(WHITE, BLACK);
 
@@ -365,56 +361,6 @@ void setParameters() {
   delay(2 *  btnDelay);
   lastActivity = millis();
 
-  /* Set Clock */
-  while (digitalRead(pinEnterBtn) == HIGH) {
-
-    if (digitalRead(pinUpBtn) == 0) {
-      adjustTime(60);  // Function of time library. Adds given seconds to time.
-      lastActivity = millis();
-      delay(btnDelay);
-    }
-
-    if (digitalRead(pinDownBtn) == 0) {
-      adjustTime(-60);  // Function of time library. Adds given seconds to time.
-      lastActivity = millis();
-      delay(btnDelay);
-    }
-
-    statusDisplay(-2, -2);
-
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-  }
-  delay(2 * btnDelay);
-  lastActivity = millis();
-
-  /* Set Timer */
-  while (digitalRead(pinEnterBtn) == HIGH) {
-
-    if (digitalRead(pinUpBtn) == 0) {
-      giess.time += 60;
-      lastActivity = millis();
-      delay(btnDelay);
-    }
-
-    if (digitalRead(pinDownBtn) == 0) {
-      giess.time -= 60;
-      lastActivity = millis();
-      delay(btnDelay);
-    }
-
-    statusDisplay(-2, -1);
-
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-  }
-  delay(2 * btnDelay);
-  lastActivity = millis();
-
   /* Set target volumes */
   while (channel < CHANNEL) {
     /* Choose channel */
@@ -444,6 +390,60 @@ void setParameters() {
       return;
     }
   }
+
+  delay(btnDelay);
+  lastActivity = millis();
+
+  /* Set Clock */
+  while (digitalRead(pinEnterBtn) == HIGH) {
+
+    if (digitalRead(pinUpBtn) == 0) {
+      adjustTime(60);  // Function of time library. Adds given seconds to time.
+      lastActivity = millis();
+      delay(btnDelay/2);
+    }
+
+    if (digitalRead(pinDownBtn) == 0) {
+      adjustTime(-60);  // Function of time library. Adds given seconds to time.
+      lastActivity = millis();
+      delay(btnDelay/2);
+    }
+
+    statusDisplay(-2, -2);
+
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+
+  /* Set Timer */
+  while (digitalRead(pinEnterBtn) == HIGH) {
+
+    if (digitalRead(pinUpBtn) == 0) {
+      giess.time += 60;
+      lastActivity = millis();
+      delay(btnDelay/2);
+    }
+
+    if (digitalRead(pinDownBtn) == 0) {
+      giess.time -= 60;
+      lastActivity = millis();
+      delay(btnDelay/2);
+    }
+
+    statusDisplay(-2, -1);
+
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+  }
+
+  delay(btnDelay);
 
   writeParameters();
   return;
