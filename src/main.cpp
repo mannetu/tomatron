@@ -12,7 +12,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 #define _WaterH_
-#include "Water.h"
+#include "water.h"
 
 /* Water channels */
 #define CHANNEL 4
@@ -46,7 +46,7 @@ const byte pinUpBtn =     0;      // Up/Increase-Button
 const byte pinDownBtn =   1;    // Down/Decrease-Button
 const byte pinEnterBtn =  2;   // Enter-Button @ Interupt 0
 const byte pinManualBtn = 3;  // Button for Manual Mode
-const byte btnDelay =     200; // ButtonDelay
+unsigned int btnDelay =     200; // ButtonDelay
 
 /******* Objects *******************/
 Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin must not be changed!
@@ -400,7 +400,7 @@ void setParameters() {
     if (digitalRead(pinUpBtn) == 0) {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
       lastActivity = millis();
-      delay(btnDelay/2);
+      delay(btnDelay);
     }
 
     if (digitalRead(pinDownBtn) == 0) {

@@ -5,7 +5,7 @@
 #endif
 
 #ifndef _WaterH_
-  #include "Water.h"
+  #include "water.h"
 #endif
 
 statusFlag dosingFlag = IDLE;
