@@ -51,13 +51,13 @@ unsigned int btnDelay =     200; // ButtonDelay
 Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin must not be changed!
 
 Magnetvalves valve[CHANNEL] = {
-  Magnetvalves(4, "Tomaten"),
-  Magnetvalves(5, "Gurken"),
-  Magnetvalves(6, "Paprika"),
-  Magnetvalves(7, "Bohnen")
+  Magnetvalves(5, "Tomaten"),
+  Magnetvalves(6, "Gurken"),
+  Magnetvalves(7, "Paprika"),
+  Magnetvalves(8, "Bohnen")
 };
 
-Pump pump = Pump(8);
+Pump pump = Pump(4);
 
 /******* Function prototypes *******/
 int checkGiessen(void);
