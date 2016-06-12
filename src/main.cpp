@@ -31,8 +31,7 @@ struct s_giess {
   time_t time;
 } giess;
 
-/* Nokia 5110 Display
-// Software SPI (slower updates, more flexible pin options):
+/* Nokia 5110 Display - Software SPI (slower updates, more flexible pin options):
 // pin 13 - Serial clock out (SCLK)
 // pin 12 - Serial data out (DIN)
 // pin 11 - Data/Command select (D/C)
@@ -51,15 +50,14 @@ unsigned int btnDelay =     200; // ButtonDelay
 /******* Objects *******************/
 Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin must not be changed!
 
-Magnetvalves valve[CHANNEL] =
-{
-  Magnetvalves(5, "Tomaten"),
-  Magnetvalves(6, "Gurken"),
-  Magnetvalves(7, "Paprika"),
-  Magnetvalves(8, "Bohnen")
+Magnetvalves valve[CHANNEL] = {
+  Magnetvalves(4, "Tomaten"),
+  Magnetvalves(5, "Gurken"),
+  Magnetvalves(6, "Paprika"),
+  Magnetvalves(7, "Bohnen")
 };
 
-Pump pump = Pump(9);
+Pump pump = Pump(8);
 
 /******* Function prototypes *******/
 int checkGiessen(void);
