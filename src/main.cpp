@@ -8,6 +8,9 @@
 #define _ArduinoH_
 #include <EEPROM.h>
 #include <Time.h>
+#include <avr/wdt.h>  // Watchdog-Timer
+#include <avr/sleep.h>
+#include <avr/power.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 #define _WaterH_
@@ -16,6 +19,8 @@
 /* Water channels */
 #define CHANNEL 4
 #define DISPLAY_UPDATE 250
+
+volatile int f_wdt = 0;
 
 /* Flag for system status:
 *
@@ -71,6 +76,9 @@ void calibration();
 void calibrationDoseDisplay(int);
 void calibrationDisplay(double);
 
+void btnInterruptSleep(void);
+void enterSleep(void);
+
 
 /****** Functions ******************/
 void setup() {
@@ -81,11 +89,35 @@ void setup() {
   EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
   *********************************************************************/
 
+  /* Power management */
+  power_adc_disable();
+  power_spi_disable();
+  power_timer1_disable();
+  power_timer2_disable();
+  power_twi_disable();
+
+  /* Setup the Watchdog Timer to wake up every 8 sec */
+
+    /* Clear the reset flag. */
+    MCUSR &= ~(1<<WDRF);
+    /* In order to change WDE or the prescaler, we need to
+     * set WDCE (This will allow updates for 4 clock cycles).
+     */
+    WDTCSR |= (1<<WDCE) | (1<<WDE);
+
+    /* set new watchdog timeout prescaler value */
+    WDTCSR = 1<<WDP0 | 1<<WDP3; /* 8.0 seconds */
+
+    /* Enable the WD interrupt (note no reset). */
+    WDTCSR |= _BV(WDIE);
+
+
+
   /* Set clock */
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
   /* Set pin configuration for buttons */
-  pinMode(pinEnterBtn, INPUT_PULLUP);
+  pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required!!
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
 
@@ -148,6 +180,13 @@ void loop() {
   if (digitalRead(pinEnterBtn) == 0) {
     setParameters();
   }
+
+  /* Enter sleep mode */
+  if(f_wdt == 1) {
+    f_wdt = 0;     // Don't forget to clear the flag.
+    /* Re-enter sleep mode. */
+    enterSleep();
+  }
 }
 
 int checkGiessen() {
@@ -173,6 +212,8 @@ void giessRoutine() {
   if (giess.flag > CHANNEL-1) {
     pump.stop();
     giess.flag = -1;
+    statusDisplay(giess.flag, -1);
+    enterSleep();     // after giessing, put ATmega in sleep mode
   }
 }
 
@@ -461,4 +502,38 @@ void writeParameters() {
   }
   /* Show normal display */
   statusDisplay(-1, -1);
+}
+
+void btnInterruptSleep(void)
+{
+  /* This will bring us back from sleep. */
+  /* We detach the interrupt to stop it from
+   * continuously firing while the interrupt pin
+   * is low.
+   */
+  detachInterrupt(0);
+}
+
+void enterSleep(void)
+{
+  /* Setup pin2 as an interrupt and attach handler. */
+  attachInterrupt(0, btnInterruptSleep, LOW);
+  delay(100);
+
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.print("sleep.");
+  display.display();
+
+  set_sleep_mode(SLEEP_MODE_IDLE);
+  sleep_enable();
+  sleep_mode();
+  /* The program will continue from here. */
+
+  /* First thing to do is disable sleep. */
+  sleep_disable();
+}
+
+ISR(WDT_vect) {
+  if(f_wdt == 0) f_wdt = 1;
 }
