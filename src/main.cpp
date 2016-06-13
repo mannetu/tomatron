@@ -8,7 +8,6 @@
 #define _ArduinoH_
 #include <EEPROM.h>
 #include <Time.h>
-#include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 #define _WaterH_
