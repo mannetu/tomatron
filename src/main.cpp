@@ -20,7 +20,7 @@
 #define CHANNEL 4
 #define DISPLAY_UPDATE 250
 
-volatile int f_wdt = 0;
+volatile int f_wdt = 0;  // Watchdog-Flag
 
 /* Flag for system status:
 *
@@ -112,7 +112,6 @@ void setup() {
     WDTCSR |= _BV(WDIE);
 
 
-
   /* Set clock */
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
@@ -182,9 +181,10 @@ void loop() {
   }
 
   /* Enter sleep mode */
-  if(f_wdt == 1) {
+  if(f_wdt == 1 && giess.flag == -1) {
     f_wdt = 0;     // Don't forget to clear the flag.
     /* Re-enter sleep mode. */
+    statusDisplay(giess.flag, -1);
     enterSleep();
   }
 }
@@ -212,8 +212,6 @@ void giessRoutine() {
   if (giess.flag > CHANNEL-1) {
     pump.stop();
     giess.flag = -1;
-    statusDisplay(giess.flag, -1);
-    enterSleep();     // after giessing, put ATmega in sleep mode
   }
 }
 
@@ -521,11 +519,11 @@ void enterSleep(void)
   delay(100);
 
   display.clearDisplay();
-  display.setCursor(0, 0);
+  display.setCursor(20, 10);
   display.print("sleep.");
   display.display();
 
-  set_sleep_mode(SLEEP_MODE_IDLE);
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
   sleep_mode();
   /* The program will continue from here. */
