@@ -8,7 +8,7 @@
   #include "water.h"
 #endif
 
-statusFlag dosingFlag = IDLE;
+statusFlag dosingFlag = WATER_IDLE;
 void interuptPulse();
 
 /******* Flowmeter Member Functions *******/
@@ -30,7 +30,7 @@ long Flowmeter::getPulseCount() {
 void Flowmeter::resetFlowMeter() {
   attachInterrupt(1, interuptPulse, FALLING);
   pulseCount = 0;
-  dosingFlag = IDLE;
+  dosingFlag = WATER_IDLE;
 }
 
 byte Flowmeter::getVolume() {
@@ -90,19 +90,19 @@ char * Magnetvalves::getPlant() {
 }
 
 byte Magnetvalves::dosing(void) {
-  if (dosingFlag == IDLE) {
+  if (dosingFlag == WATER_IDLE) {
     digitalWrite(this->pin, HIGH);
-    dosingFlag = BSY;
+    dosingFlag = WATER_BSY;
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV < this->targetV-1)) {
+  if ((dosingFlag == WATER_BSY) && (currV < this->targetV-1)) {
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV > this->targetV-1)) {
+  if ((dosingFlag == WATER_BSY) && (currV > this->targetV-1)) {
     digitalWrite(this->pin, LOW);
-    dosingFlag = IDLE;
+    dosingFlag = WATER_IDLE;
     return 0;
   }
 
@@ -110,19 +110,19 @@ byte Magnetvalves::dosing(void) {
 }
 
 byte Magnetvalves::dosing(byte vol) {
-  if (dosingFlag == IDLE) {
+  if (dosingFlag == WATER_IDLE) {
     digitalWrite(this->pin, HIGH);
-    dosingFlag = BSY;
+    dosingFlag = WATER_BSY;
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV < vol-1)) {
+  if ((dosingFlag == WATER_BSY) && (currV < vol-1)) {
     return 1;
   }
 
-  if ((dosingFlag == BSY) && (currV > vol-1)) {
+  if ((dosingFlag == WATER_BSY) && (currV > vol-1)) {
     digitalWrite(this->pin, LOW);
-    dosingFlag = IDLE;
+    dosingFlag = WATER_IDLE;
     return 0;
   }
 

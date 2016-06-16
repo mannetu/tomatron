@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-enum statusFlag {IDLE, BSY};
+enum statusFlag {WATER_IDLE, WATER_BSY};
 
 
 class Flowmeter {

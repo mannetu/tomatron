@@ -11,6 +11,8 @@
 #include <avr/wdt.h>  // Watchdog-Timer
 #include <avr/sleep.h>
 #include <avr/power.h>
+#include <Wire.h>
+#include <DS3232RTC.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
 #define _WaterH_
@@ -19,6 +21,9 @@
 /* Water channels */
 #define CHANNEL 4
 #define DISPLAY_UPDATE 250
+
+/* RTC */
+
 
 volatile int f_wdt = 0;  // Watchdog-Flag
 
@@ -94,7 +99,6 @@ void setup() {
   power_spi_disable();
   power_timer1_disable();
   power_timer2_disable();
-  power_twi_disable();
 
   /* Setup the Watchdog Timer to wake up every 8 sec */
 
