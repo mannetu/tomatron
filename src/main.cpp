@@ -24,14 +24,8 @@
 
 /* RTC */
 
-
-enum systemStatus {CTRL_SLEEP = -3, CTRL_SET = -2, CTRL_IDLE = -1};
-/* Flag for system status:
-*
-*  -2 (setParameters)
-*  -1 (idle)
-*   0, 1, 2 (busy channel)
-*/
+/* Giessflag:  0, 1, 2 (busy channel) */
+enum giessFlag {CTRL_SLEEP = -3, CTRL_SET = -2, CTRL_IDLE = -1};
 
 struct s_giess {
   int flag = -1;
