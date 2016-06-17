@@ -25,8 +25,7 @@
 /* RTC */
 
 
-volatile int f_wdt = 0;  // Watchdog-Flag
-
+enum systemStatus {CTRL_SLEEP = -3, CTRL_SET = -2, CTRL_IDLE = -1};
 /* Flag for system status:
 *
 *  -2 (setParameters)
@@ -100,21 +99,8 @@ void setup() {
   power_timer1_disable();
   power_timer2_disable();
 
-  /* Setup the Watchdog Timer to wake up every 8 sec */
-
-    /* Clear the reset flag. */
-    MCUSR &= ~(1<<WDRF);
-    /* In order to change WDE or the prescaler, we need to
-     * set WDCE (This will allow updates for 4 clock cycles).
-     */
-    WDTCSR |= (1<<WDCE) | (1<<WDE);
-
-    /* set new watchdog timeout prescaler value */
-    WDTCSR = 1<<WDP0 | 1<<WDP3; /* 8.0 seconds */
-
-    /* Enable the WD interrupt (note no reset). */
-    WDTCSR |= _BV(WDIE);
-
+  /* Setup the Watchdog Timer */
+  wdt_enable(WDTO_8S);
 
   /* Set clock */
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
@@ -123,6 +109,7 @@ void setup() {
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required!!
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
+  flow.resetFlowMeter();
 
   /* Read giessTime from EEPROM */
   int eeAdress = 0;   // EEPROM-Adress
@@ -164,7 +151,7 @@ void setup() {
 void loop() {
 
   /* Check if it is time for giessing */
-  if (giess.flag == -1) {
+  if (giess.flag == CTRL_IDLE) {
     giess.flag = checkGiessen();
   }
 
@@ -175,8 +162,18 @@ void loop() {
   }
 
   /* If giessing, then check progress */
-  if (giess.flag > -1) {
+  if (giess.flag > CTRL_IDLE) {
     giessRoutine();
+  }
+
+  /* Enter sleep mode */
+  if(giess.flag == CTRL_IDLE) {
+    /* Re-enter sleep mode. */
+    statusDisplay(CTRL_SLEEP, -1);
+    wdt_disable();
+    enterSleep();
+    wdt_enable(WDTO_8S);
+    statusDisplay(CTRL_IDLE, -1);
   }
 
   /* On enter btn press, start mode to set time, giessTime and target volumes */
@@ -184,18 +181,12 @@ void loop() {
     setParameters();
   }
 
-  /* Enter sleep mode */
-  if(f_wdt == 1 && giess.flag == -1) {
-    f_wdt = 0;     // Don't forget to clear the flag.
-    /* Re-enter sleep mode. */
-    statusDisplay(giess.flag, -1);
-    enterSleep();
-  }
+  wdt_reset();
 }
 
 int checkGiessen() {
   /* Check if time for giessen */
-  if ((giess.flag == -1) && (hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
+  if ((giess.flag == CTRL_IDLE) && (hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
     flow.resetFlowMeter();
     return 0;
   }
@@ -238,7 +229,11 @@ void statusDisplay(int gf, int ch) {
 
     /* Print giess time */
     display.setCursor(40, 0);
-    display.print(">>");
+    if (gf == -3) {
+      display.print("S>");
+      } else {
+        display.print(">>");
+      }
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
     display.print(hour(giess.time)); display.print(":");
     if(minute(giess.time) < 10) display.print('0');
@@ -395,6 +390,7 @@ void calibrationDisplay(double vol) {
 
 void setParameters() {
 
+  wdt_disable();
   int channel = 0;
   long lastActivity;
 
@@ -486,6 +482,7 @@ void setParameters() {
   delay(btnDelay);
 
   writeParameters();
+  wdt_enable(WDTO_8S);
   return;
 }
 
@@ -521,21 +518,17 @@ void enterSleep(void)
   /* Setup pin2 as an interrupt and attach handler. */
   attachInterrupt(0, btnInterruptSleep, LOW);
   delay(100);
-
+/*
   display.clearDisplay();
   display.setCursor(20, 10);
   display.print("sleep.");
   display.display();
-
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+*/
+  set_sleep_mode(SLEEP_MODE_STANDBY);
   sleep_enable();
   sleep_mode();
   /* The program will continue from here. */
 
   /* First thing to do is disable sleep. */
   sleep_disable();
-}
-
-ISR(WDT_vect) {
-  if(f_wdt == 0) f_wdt = 1;
 }
