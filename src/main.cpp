@@ -24,8 +24,13 @@
 
 /* RTC */
 
-/* Giessflag:  0, 1, 2 (busy channel) */
-enum giessFlag {CTRL_SLEEP = -3, CTRL_SET = -2, CTRL_IDLE = -1, CTRL_ACT = 0};
+/* Giessflag */
+enum giessFlag {
+  CTRL_SLEEP = -3,
+  CTRL_SET = -2,
+  CTRL_IDLE = -1,
+  CTRL_ACT = 0  // 1, 2, 3
+};
 
 struct s_giess {
   int flag = -1;
@@ -33,24 +38,25 @@ struct s_giess {
   time_t time;
 } giess;
 
-/* Nokia 5110 Display - Software SPI (slower updates, more flexible pin options):
-// pin 13 - Serial clock out (SCLK)
-// pin 12 - Serial data out (DIN)
-// pin 11 - Data/Command select (D/C)
-// GND    - LCD chip select (CS)
-// pin 10 - LCD reset (RST)
+/*** Nokia 5110 Display  ******
+ Software SPI (slower updates, more flexible pin options):
+ pin 13 - Serial clock out (SCLK)
+ pin 12 - Serial data out (DIN)
+ pin 11 - Data/Command select (D/C)
+ GND    - LCD chip select (CS)
+ pin 10 - LCD reset (RST)
 */
 Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10);
 
-/* Pins for Buttons  */
-const byte pinUpBtn =     0;      // Up/Increase-Button
-const byte pinDownBtn =   1;    // Down/Decrease-Button
-const byte pinEnterBtn =  2;   // Enter-Button @ Interupt 0
-const byte pinManualBtn = 3;  // Button for Manual Mode
-unsigned int btnDelay =     200; // ButtonDelay
+/* Buttons  */
+const byte pinUpBtn =     0;   // Pin Up/Increase-Button
+const byte pinDownBtn =   1;   // Pin Down/Decrease-Button
+const byte pinEnterBtn =  2;   // Pin Enter-Button @ Interupt 0
+
+unsigned int btnDelay =   200; // Debounce delay
 
 /******* Objects *******************/
-Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin must not be changed!
+Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin 3 must not be changed!
 
 Magnetvalves valve[CHANNEL] = {
   Magnetvalves(5, "Tomaten"),
@@ -84,7 +90,7 @@ void setup() {
   /*** ONLY FOR INITIAL EEPROM PROGRAMMING ****************************
   giessTime = now() + 3600;
   EEPROM.put(0, giessTime);
-  EEPROM.put(sizeof(time_t), 1); // Default value for calibration factor
+  EEPROM.put(sizeof(time_t), 480); // 480 Pulse/L calculated from datasheet
   *********************************************************************/
 
   /* Power management */
@@ -316,7 +322,6 @@ void calibration() {
   /* Show instructions on display */
   display.clearDisplay();
   display.setCursor(0,0);
-  //Display-Pos    12345678901234
   display.println("Kalibierung");
   display.println("Taste drucken");
   display.println("10L aus V1:");
@@ -360,7 +365,6 @@ void calibration() {
 void calibrationDoseDisplay(int vol) {
   display.clearDisplay();
   display.setCursor(0,0);
-  //Display        12345678901234
   display.println("Dosierung");
   display.println("");
   display.println("");
@@ -372,7 +376,6 @@ void calibrationDoseDisplay(int vol) {
 void calibrationDisplay(double vol) {
   display.clearDisplay();
   display.setCursor(0,0);
-  //Display        12345678901234
   display.println("Volumen ein-");
   display.println("stellen und ");
   display.println("bestaetigen");
@@ -480,24 +483,23 @@ void setParameters() {
 }
 
 void writeParameters() {
-  int eeAdress = 0;
-  int i;
 
   /* Write new giessTime to EEPROM */
+  int eeAdress = 0;
   EEPROM.put(eeAdress, giess.time);
-  eeAdress += (sizeof(time_t) + sizeof(int));
 
   /* Write new volume targets to EEPROM */
+  eeAdress += (sizeof(time_t) + sizeof(int));
+  int i;
   for (i = 0; i < CHANNEL; i++) {
     EEPROM.put(eeAdress, valve[i].readVolumeTarget());
     eeAdress += sizeof(int);
   }
   /* Show normal display */
-  statusDisplay(-1, -1);
+  statusDisplay(CTRL_IDLE, -1);
 }
 
-void btnInterruptSleep(void)
-{
+void btnInterruptSleep(void) {
   /* This will bring us back from sleep. */
   /* We detach the interrupt to stop it from
    * continuously firing while the interrupt pin
@@ -506,9 +508,8 @@ void btnInterruptSleep(void)
   detachInterrupt(0);
 }
 
-void enterSleep(void)
-{
-  /* Setup pin2 as an interrupt and attach handler. */
+void enterSleep(void) {
+  /* Set-up pin2 as an interrupt and attach handler. */
   attachInterrupt(0, btnInterruptSleep, LOW);
   delay(100);
   set_sleep_mode(SLEEP_MODE_STANDBY);
