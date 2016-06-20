@@ -113,21 +113,8 @@ void setup() {
 
   /* Set clock */
   setTime(RTC.get());   // the function to get the time from the RTC
-  display.clearDisplay();
-  if(timeStatus() != timeSet) {
-      display.println("Unable to ");
-      display.println("sync with ");
-      display.println("the RTC");
-      display.println("");
-      display.println("Reset in 8s..");
-      display.display();
-      while (1);
-      }
-  else {
-    display.println("RTC has set the system time");
-    display.display();
-    delay(500);
-    }
+
+      setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
   /* Set RTC alarm to wake-up microcontroller every minute
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
@@ -196,7 +183,7 @@ void loop() {
     wdt_disable();
     enterSleep();
     wdt_enable(WDTO_8S);
-    setTime(RTC.get());
+    //setTime(RTC.get());
     statusDisplay(CTRL_IDLE, -1);
   }
 
