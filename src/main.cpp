@@ -22,8 +22,6 @@
 #define CHANNEL 4
 #define DISPLAY_UPDATE 250
 
-/* RTC */
-
 /* Giessflag */
 enum giessFlag {
   CTRL_SLEEP = -3,
@@ -71,14 +69,15 @@ Pump pump = Pump(4);
 int checkGiessen(void);
 void giessRoutine(void);
 void statusDisplay(int, int);
-//void interuptPulse(void);
 
-void setParameters(void);
-void writeParameters();
+void interruptPulse(void);
 
 void calibration();
 void calibrationDoseDisplay(int);
 void calibrationDisplay(double);
+
+void setParameters(void);
+void writeParameters();
 
 void btnInterruptSleep(void);
 void enterSleep(void);
@@ -87,10 +86,13 @@ void enterSleep(void);
 /****** Functions ******************/
 void setup() {
 
-  /*** ONLY FOR INITIAL EEPROM PROGRAMMING ****************************
+  /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING ********************
   giessTime = now() + 3600;
   EEPROM.put(0, giessTime);
   EEPROM.put(sizeof(time_t), 480); // 480 Pulse/L calculated from datasheet
+
+  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
+  RTC.set(now());
   *********************************************************************/
 
   /* Power management */
@@ -102,8 +104,36 @@ void setup() {
   /* Setup the Watchdog Timer */
   wdt_enable(WDTO_8S);
 
+  /* Setup LCD display */
+  display.begin(); // init done
+  display.setContrast(50);
+  display.setTextSize(1);
+  display.setTextColor(BLACK);
+  delay(1000);
+
   /* Set clock */
-  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
+  setTime(RTC.get());   // the function to get the time from the RTC
+  display.clearDisplay();
+  if(timeStatus() != timeSet) {
+      display.println("Unable to ");
+      display.println("sync with ");
+      display.println("the RTC");
+      display.println("");
+      display.println("Reset in 8s..");
+      display.display();
+      while (1);
+      }
+  else {
+    display.println("RTC has set the system time");
+    display.display();
+    delay(500);
+    }
+
+  /* Set RTC alarm to wake-up microcontroller every minute
+   * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
+  RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);
+  RTC.squareWave(SQWAVE_NONE);
+  RTC.alarmInterrupt(ALARM_2, true);
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required!!
@@ -130,12 +160,6 @@ void setup() {
     valve[i].setVolumeTarget(vol);
   }
 
-  /* Setup LCD display */
-  display.begin(); // init done
-  display.setContrast(50);
-  display.setTextSize(1);
-  display.setTextColor(BLACK);
-  delay(1000);
 
   /* If Enter is pressed at boot, enter calibration mode */
   if (digitalRead(pinEnterBtn) == LOW) {
@@ -172,6 +196,7 @@ void loop() {
     wdt_disable();
     enterSleep();
     wdt_enable(WDTO_8S);
+    setTime(RTC.get());
     statusDisplay(CTRL_IDLE, -1);
   }
 
@@ -495,6 +520,10 @@ void writeParameters() {
     EEPROM.put(eeAdress, valve[i].readVolumeTarget());
     eeAdress += sizeof(int);
   }
+
+  /* Update RTC */
+  RTC.set(now());
+
   /* Show normal display */
   statusDisplay(CTRL_IDLE, -1);
 }
