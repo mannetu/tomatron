@@ -25,7 +25,7 @@
 /* RTC */
 
 /* Giessflag:  0, 1, 2 (busy channel) */
-enum giessFlag {CTRL_SLEEP = -3, CTRL_SET = -2, CTRL_IDLE = -1};
+enum giessFlag {CTRL_SLEEP = -3, CTRL_SET = -2, CTRL_IDLE = -1, CTRL_ACT = 0};
 
 struct s_giess {
   int flag = -1;
@@ -129,13 +129,13 @@ void setup() {
   display.setContrast(50);
   display.setTextSize(1);
   display.setTextColor(BLACK);
-  delay(500);
+  delay(1000);
 
   /* If Enter is pressed at boot, enter calibration mode */
   if (digitalRead(pinEnterBtn) == LOW) {
     display.clearDisplay();
     display.display();
-    delay(5000);
+    delay(2000);
     calibration();
   }
 
@@ -156,13 +156,12 @@ void loop() {
   }
 
   /* If giessing, then check progress */
-  if (giess.flag > CTRL_IDLE) {
+  if (giess.flag > CTRL_IDLE) {   // that is active channel 0, 1, 2, or 3
     giessRoutine();
   }
 
   /* Enter sleep mode */
   if(giess.flag == CTRL_IDLE) {
-    /* Re-enter sleep mode. */
     statusDisplay(CTRL_SLEEP, -1);
     wdt_disable();
     enterSleep();
@@ -180,11 +179,11 @@ void loop() {
 
 int checkGiessen() {
   /* Check if time for giessen */
-  if ((giess.flag == CTRL_IDLE) && (hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
+  if ((hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
     flow.resetFlowMeter();
-    return 0;
+    return CTRL_ACT;
   }
-  return -1;
+  return CTRL_IDLE;
 }
 
 void giessRoutine() {
@@ -200,7 +199,7 @@ void giessRoutine() {
 
   if (giess.flag > CHANNEL-1) {
     pump.stop();
-    giess.flag = -1;
+    giess.flag = CTRL_IDLE;
   }
 }
 
@@ -512,12 +511,6 @@ void enterSleep(void)
   /* Setup pin2 as an interrupt and attach handler. */
   attachInterrupt(0, btnInterruptSleep, LOW);
   delay(100);
-/*
-  display.clearDisplay();
-  display.setCursor(20, 10);
-  display.print("sleep.");
-  display.display();
-*/
   set_sleep_mode(SLEEP_MODE_STANDBY);
   sleep_enable();
   sleep_mode();
