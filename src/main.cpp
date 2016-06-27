@@ -91,9 +91,10 @@ void setup() {
   EEPROM.put(0, giessTime);
   EEPROM.put(sizeof(time_t), 480); // 480 Pulse/L calculated from datasheet
 
+  *********************************************************************/
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
   RTC.set(now());
-  *********************************************************************/
+
 
   /* Power management */
   power_adc_disable();
@@ -113,8 +114,6 @@ void setup() {
 
   /* Set clock */
   setTime(RTC.get());   // the function to get the time from the RTC
-
-      setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
   /* Set RTC alarm to wake-up microcontroller every minute
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
@@ -331,6 +330,8 @@ void calibration() {
   double vol = 10.0; // Volume dispensed for calibration
   int eeAdress = sizeof(time_t);
 
+  wdt_disable();
+
   /* Show instructions on display */
   display.clearDisplay();
   display.setCursor(0,0);
@@ -372,6 +373,8 @@ void calibration() {
   cf = flow.getPulseCount() / vol;
   flow.setCalibrationFactor(cf);
   EEPROM.put(eeAdress, cf);
+
+  wdt_enable(WDTO_8S);
 }
 
 void calibrationDoseDisplay(int vol) {
@@ -490,7 +493,6 @@ void setParameters() {
   delay(btnDelay);
 
   writeParameters();
-  wdt_enable(WDTO_8S);
   return;
 }
 
@@ -507,6 +509,8 @@ void writeParameters() {
     EEPROM.put(eeAdress, valve[i].readVolumeTarget());
     eeAdress += sizeof(int);
   }
+
+  wdt_enable(WDTO_8S);
 
   /* Update RTC */
   RTC.set(now());
