@@ -87,8 +87,9 @@ void enterSleep(void);
 void setup() {
 
   /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING ********************
-  giessTime = now() + 3600;
-  EEPROM.put(0, giessTime);
+  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
+  giess.time = now() + 3600;
+  EEPROM.put(0, giess.time);
   EEPROM.put(sizeof(time_t), 480); // 480 Pulse/L calculated from datasheet
 
   *********************************************************************/
@@ -114,6 +115,9 @@ void setup() {
 
   /* Set clock */
   setTime(RTC.get());   // the function to get the time from the RTC
+
+  /**** only for testing without RTC */
+  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
 
   /* Set RTC alarm to wake-up microcontroller every minute
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
