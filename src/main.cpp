@@ -136,6 +136,9 @@ void setup() {
   EEPROM.get(eeAdress, giess.time);
   eeAdress += sizeof(time_t); // Set position to calibration factor
 
+  /* Initialize GiessFlag */
+  giess.flag = CTRL_IDLE;
+
   /* Read calibration factor from EEPROM */
   int cf;
   EEPROM.get(eeAdress, cf);
@@ -536,7 +539,7 @@ void enterSleep(void) {
   /* Set-up pin2 as an interrupt and attach handler. */
   attachInterrupt(0, btnInterruptSleep, LOW);
   delay(100);
-  set_sleep_mode(SLEEP_MODE_STANDBY);
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
   sleep_mode();
   /* The program will continue from here. */
