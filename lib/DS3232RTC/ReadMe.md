@@ -159,7 +159,7 @@ Write one or more bytes to RTC memory.
 #####Parameters
 **addr:** First SRAM address to write *(byte)*. The valid address range is 0x00-0x12 for DS3231, 0x00-0xFF for DS3232. The general-purpose SRAM for the DS3232 begins at address 0x14. Address is not checked for validity by the library.
 **values:** An array of values to write _(*byte)_  
-**nBytes:** Number of bytes to write *(byte)*. Must be between 1 and 31 (Wire library limitation) but is not checked by the library. 
+**nBytes:** Number of bytes to write *(byte)*. Must be between 1 and 31 (Wire library limitation) but is not checked by the library.
 #####Returns
 I2C status *(byte)*. Returns zero if successful.
 #####Example
@@ -192,7 +192,7 @@ Read one or more bytes from RTC RAM.
 #####Parameters
 **addr:** First SRAM address to read *(byte)*. The valid address range is 0x00-0x12 for DS3231, 0x00-0xFF for DS3232. The general-purpose SRAM for the DS3232 begins at address 0x14. Address is not checked for validity by the library.
 **values:** An array to receive the values read _(*byte)_  
-**nBytes:** Number of bytes to read *(byte)*. Must be between 1 and 32 (Wire library limitation) but is not checked by the library. 
+**nBytes:** Number of bytes to read *(byte)*. Must be between 1 and 32 (Wire library limitation) but is not checked by the library.
 #####Returns
 I2C status *(byte)*. Returns zero if successful.
 #####Example

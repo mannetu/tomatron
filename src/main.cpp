@@ -111,16 +111,18 @@ void setup() {
   delay(1000);
 
   /* Set time and RTC options */
+  while (RTC.get() == 0);
   setTime(RTC.get());   // the function to get the time from the RTC
 
   /* Set RTC alarm to wake-up microcontroller every minute
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
-  RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);
+  //RTC.squareWave(SQWAVE_1_HZ);
   RTC.squareWave(SQWAVE_NONE);
+  RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0);
   RTC.alarmInterrupt(ALARM_2, true);
 
   /* Set pin configuration for buttons */
-  pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required!!
+  pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required due to interrupt function!!
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
   flow.resetFlowMeter();

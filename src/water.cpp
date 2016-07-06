@@ -16,7 +16,6 @@ void interuptPulse();
 Flowmeter::Flowmeter(byte p) { // Constructor
     pin = p;
     pinMode(pin, INPUT);
-
 }
 
 void Flowmeter::setCalibrationFactor(int cf) {
