@@ -117,9 +117,9 @@ void setup() {
   /* Set RTC alarm to wake-up microcontroller every minute
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
   //RTC.squareWave(SQWAVE_1_HZ);
-  //RTC.squareWave(SQWAVE_NONE);
-  RTC.setAlarm(ALM1_EVERY_SECOND, 0, 0, 0, 0);
+  RTC.squareWave(SQWAVE_NONE);
   RTC.alarm(ALARM_1);
+  RTC.setAlarm(ALM1_EVERY_SECOND, 0, 0, 0, 0);
   RTC.alarmInterrupt(ALARM_1, true);
 
   /* Set pin configuration for buttons */
@@ -534,7 +534,7 @@ void btnInterruptSleep(void) {
 
 void enterSleep(void) {
   /* Set-up pin2 as an interrupt and attach handler. */
-  attachInterrupt(0, btnInterruptSleep, LOW);
+  attachInterrupt(0, btnInterruptSleep, FALLING);
   delay(100);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
