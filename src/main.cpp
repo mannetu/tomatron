@@ -65,6 +65,8 @@ Magnetvalves valve[CHANNEL] = {
 
 Pump pump = Pump(4);
 
+volatile boolean alarmIsrWasCalled = true;
+
 /******* Function prototypes *******/
 int checkGiessen(void);
 void giessRoutine(void);
@@ -116,11 +118,14 @@ void setup() {
 
   /* Set RTC alarm to wake-up microcontroller every minute
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
-  //RTC.squareWave(SQWAVE_1_HZ);
   RTC.squareWave(SQWAVE_NONE);
+
+  RTC.alarmInterrupt(ALARM_1, false);
   RTC.alarm(ALARM_1);
-  RTC.setAlarm(ALM1_EVERY_SECOND, 0, 0, 0, 0);
-  RTC.alarmInterrupt(ALARM_1, true);
+  RTC.setAlarm(ALM2_EVERY_MINUTE, 1, 1, 1, 1);
+  RTC.alarm(ALARM_2);
+  RTC.alarmInterrupt(ALARM_2, true);
+
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required due to interrupt function!!
@@ -160,9 +165,26 @@ void setup() {
   }
 
   statusDisplay(-1, -1);
-}
+  }
 
 void loop() {
+
+  if (alarmIsrWasCalled) {
+    RTC.alarm(ALARM_1);
+    RTC.alarm(ALARM_2);
+    alarmIsrWasCalled = false;
+  }
+
+  /* Enter sleep mode */
+  if(giess.flag == CTRL_IDLE) {
+    statusDisplay(CTRL_SLEEP, -1);
+    wdt_disable();
+    enterSleep();
+    wdt_enable(WDTO_8S);
+    setTime(RTC.get());
+    statusDisplay(CTRL_IDLE, -1);
+  }
+
 
   /* Check if it is time for giessing */
   if (giess.flag == CTRL_IDLE) {
@@ -180,19 +202,11 @@ void loop() {
     giessRoutine();
   }
 
-  /* Enter sleep mode */
-  if(giess.flag == CTRL_IDLE) {
-    statusDisplay(CTRL_SLEEP, -1);
-    wdt_disable();
-    enterSleep();
-    wdt_enable(WDTO_8S);
-    setTime(RTC.get());
-    statusDisplay(CTRL_IDLE, -1);
-  }
-
   /* On enter btn press, start mode to set time, giessTime and target volumes */
   if (digitalRead(pinEnterBtn) == 0) {
+
     setParameters();
+
   }
 
   wdt_reset();
@@ -406,6 +420,8 @@ void calibrationDisplay(double vol) {
 void setParameters() {
 
   wdt_disable();
+  RTC.alarmInterrupt(ALARM_2, false);
+
   int channel = 0;
   long lastActivity;
 
@@ -446,18 +462,18 @@ void setParameters() {
   lastActivity = millis();
 
   /* Set Clock */
-  while (digitalRead(pinEnterBtn) == HIGH) {
+  while (digitalRead(pinEnterBtn)) {
 
     if (digitalRead(pinUpBtn) == 0) {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
       lastActivity = millis();
-      delay(btnDelay);
+      delay(btnDelay/4);
     }
 
     if (digitalRead(pinDownBtn) == 0) {
       adjustTime(-60);  // Function of time library. Adds given seconds to time.
       lastActivity = millis();
-      delay(btnDelay/2);
+      delay(btnDelay/4);
     }
 
     statusDisplay(-2, -2);
@@ -472,7 +488,7 @@ void setParameters() {
   lastActivity = millis();
 
   /* Set Timer */
-  while (digitalRead(pinEnterBtn) == HIGH) {
+  while (digitalRead(pinEnterBtn)) {
 
     if (digitalRead(pinUpBtn) == 0) {
       giess.time += 60;
@@ -495,9 +511,8 @@ void setParameters() {
   }
 
   delay(btnDelay);
-
   writeParameters();
-  return;
+
 }
 
 void writeParameters() {
@@ -514,13 +529,14 @@ void writeParameters() {
     eeAdress += sizeof(int);
   }
 
-  wdt_enable(WDTO_8S);
-
   /* Update RTC */
   RTC.set(now());
 
   /* Show normal display */
   statusDisplay(CTRL_IDLE, -1);
+
+  RTC.alarmInterrupt(ALARM_2, true);
+  wdt_enable(WDTO_8S);
 }
 
 void btnInterruptSleep(void) {
@@ -530,6 +546,7 @@ void btnInterruptSleep(void) {
    * is low.
    */
   detachInterrupt(0);
+  alarmIsrWasCalled = true;
 }
 
 void enterSleep(void) {

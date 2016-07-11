@@ -15,7 +15,7 @@ void interuptPulse();
 
 Flowmeter::Flowmeter(byte p) { // Constructor
     pin = p;
-    pinMode(pin, INPUT_PULLUP);
+    pinMode(pin, INPUT);
 }
 
 void Flowmeter::setCalibrationFactor(int cf) {
@@ -27,7 +27,7 @@ long Flowmeter::getPulseCount() {
 }
 
 void Flowmeter::resetFlowMeter() {
-  attachInterrupt(1, interuptPulse, FALLING);
+  attachInterrupt(1, interuptPulse, RISING);
   pulseCount = 0;
   dosingFlag = WATER_IDLE;
 }
