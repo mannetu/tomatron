@@ -169,12 +169,6 @@ void setup() {
 
 void loop() {
 
-  if (alarmIsrWasCalled) {
-    RTC.alarm(ALARM_1);
-    RTC.alarm(ALARM_2);
-    alarmIsrWasCalled = false;
-  }
-
   /* Enter sleep mode */
   if(giess.flag == CTRL_IDLE) {
     statusDisplay(CTRL_SLEEP, -1);
@@ -185,6 +179,11 @@ void loop() {
     statusDisplay(CTRL_IDLE, -1);
   }
 
+  if (alarmIsrWasCalled) {
+    RTC.alarm(ALARM_1);
+    RTC.alarm(ALARM_2);
+    alarmIsrWasCalled = false;
+  }
 
   /* Check if it is time for giessing */
   if (giess.flag == CTRL_IDLE) {
@@ -204,9 +203,7 @@ void loop() {
 
   /* On enter btn press, start mode to set time, giessTime and target volumes */
   if (digitalRead(pinEnterBtn) == 0) {
-
     setParameters();
-
   }
 
   wdt_reset();
@@ -433,21 +430,21 @@ void setParameters() {
     /* Choose channel */
     if (digitalRead(pinEnterBtn) == 0) {
       channel++;
-      lastActivity = millis();
       delay(btnDelay);
+      lastActivity = millis();
     }
     /* Adjust volume */
     if (digitalRead(pinUpBtn) == 0) {
       valve[channel].incVolumeTarget(1);
       statusDisplay(-2, channel);
-      lastActivity = millis();
       delay(btnDelay);
+      lastActivity = millis();
     }
     if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(-1);
       statusDisplay(-2, channel);
-      lastActivity = millis();
       delay(btnDelay);
+      lastActivity = millis();
     }
 
     statusDisplay(-2, channel);
@@ -466,14 +463,14 @@ void setParameters() {
 
     if (digitalRead(pinUpBtn) == 0) {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
-      lastActivity = millis();
       delay(btnDelay/4);
+      lastActivity = millis();
     }
 
     if (digitalRead(pinDownBtn) == 0) {
       adjustTime(-60);  // Function of time library. Adds given seconds to time.
-      lastActivity = millis();
       delay(btnDelay/4);
+      lastActivity = millis();
     }
 
     statusDisplay(-2, -2);
@@ -534,7 +531,6 @@ void writeParameters() {
 
   /* Show normal display */
   statusDisplay(CTRL_IDLE, -1);
-
   RTC.alarmInterrupt(ALARM_2, true);
   wdt_enable(WDTO_8S);
 }
@@ -546,12 +542,13 @@ void btnInterruptSleep(void) {
    * is low.
    */
   detachInterrupt(0);
+  delay(100);
   alarmIsrWasCalled = true;
 }
 
 void enterSleep(void) {
   /* Set-up pin2 as an interrupt and attach handler. */
-  attachInterrupt(0, btnInterruptSleep, FALLING);
+  attachInterrupt(0, btnInterruptSleep, LOW);
   delay(100);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
