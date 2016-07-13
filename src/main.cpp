@@ -120,8 +120,8 @@ void setup() {
    * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
   RTC.squareWave(SQWAVE_NONE);
 
-  RTC.alarmInterrupt(ALARM_1, false);
   RTC.alarm(ALARM_1);
+  RTC.alarmInterrupt(ALARM_1, false);
   RTC.setAlarm(ALM2_EVERY_MINUTE, 1, 1, 1, 1);
   RTC.alarm(ALARM_2);
   RTC.alarmInterrupt(ALARM_2, true);
@@ -213,6 +213,7 @@ int checkGiessen() {
   /* Check if time for giessen */
   if ((hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
     flow.resetFlowMeter();
+    RTC.alarmInterrupt(ALARM_2, false);
     return CTRL_ACT;
   }
   return CTRL_IDLE;
@@ -232,6 +233,8 @@ void giessRoutine() {
   if (giess.flag > CHANNEL-1) {
     pump.stop();
     giess.flag = CTRL_IDLE;
+    RTC.alarm(ALARM_2);
+    RTC.alarmInterrupt(ALARM_2, true);
   }
 }
 
@@ -416,7 +419,6 @@ void calibrationDisplay(double vol) {
 
 void setParameters() {
 
-  wdt_disable();
   RTC.alarmInterrupt(ALARM_2, false);
 
   int channel = 0;
@@ -432,6 +434,7 @@ void setParameters() {
       channel++;
       delay(btnDelay);
       lastActivity = millis();
+      wdt_reset();
     }
     /* Adjust volume */
     if (digitalRead(pinUpBtn) == 0) {
@@ -439,12 +442,14 @@ void setParameters() {
       statusDisplay(-2, channel);
       delay(btnDelay);
       lastActivity = millis();
+      wdt_reset();
     }
     if (digitalRead(pinDownBtn) == 0) {
       valve[channel].incVolumeTarget(-1);
       statusDisplay(-2, channel);
       delay(btnDelay);
       lastActivity = millis();
+      wdt_reset();
     }
 
     statusDisplay(-2, channel);
@@ -453,6 +458,8 @@ void setParameters() {
       writeParameters();
       return;
     }
+
+    wdt_reset();
   }
 
   delay(btnDelay);
@@ -465,12 +472,14 @@ void setParameters() {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
       delay(btnDelay/4);
       lastActivity = millis();
+      wdt_reset();
     }
 
     if (digitalRead(pinDownBtn) == 0) {
       adjustTime(-60);  // Function of time library. Adds given seconds to time.
       delay(btnDelay/4);
       lastActivity = millis();
+      wdt_reset();
     }
 
     statusDisplay(-2, -2);
@@ -483,6 +492,7 @@ void setParameters() {
 
   delay(btnDelay);
   lastActivity = millis();
+  wdt_reset();
 
   /* Set Timer */
   while (digitalRead(pinEnterBtn)) {
@@ -490,12 +500,14 @@ void setParameters() {
     if (digitalRead(pinUpBtn) == 0) {
       giess.time += 60;
       lastActivity = millis();
+      wdt_reset();
       delay(btnDelay/2);
     }
 
     if (digitalRead(pinDownBtn) == 0) {
       giess.time -= 60;
       lastActivity = millis();
+      wdt_reset();
       delay(btnDelay/2);
     }
 
@@ -508,6 +520,7 @@ void setParameters() {
   }
 
   delay(btnDelay);
+  wdt_reset();
   writeParameters();
 
 }
@@ -531,8 +544,9 @@ void writeParameters() {
 
   /* Show normal display */
   statusDisplay(CTRL_IDLE, -1);
-  RTC.alarmInterrupt(ALARM_2, true);
-  wdt_enable(WDTO_8S);
+
+  wdt_reset();
+
 }
 
 void btnInterruptSleep(void) {
@@ -541,20 +555,23 @@ void btnInterruptSleep(void) {
    * continuously firing while the interrupt pin
    * is low.
    */
-  detachInterrupt(0);
-  delay(100);
   alarmIsrWasCalled = true;
 }
 
 void enterSleep(void) {
   /* Set-up pin2 as an interrupt and attach handler. */
-  attachInterrupt(0, btnInterruptSleep, LOW);
-  delay(100);
+  detachInterrupt(digitalPinToInterrupt(flow.getPin()));  // detach flow-meter interrupt
+  attachInterrupt(digitalPinToInterrupt(pinEnterBtn), btnInterruptSleep, FALLING);
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
+
   sleep_mode();
   /* The program will continue from here. */
 
   /* First thing to do is disable sleep. */
-  sleep_disable();
+  if (alarmIsrWasCalled) {
+    detachInterrupt(0);
+    sleep_disable();
+  }
+
 }
