@@ -180,7 +180,6 @@ void loop() {
   }
 
   if (alarmIsrWasCalled) {
-    RTC.alarm(ALARM_1);
     RTC.alarm(ALARM_2);
     alarmIsrWasCalled = false;
   }
@@ -544,18 +543,15 @@ void writeParameters() {
 
   /* Show normal display */
   statusDisplay(CTRL_IDLE, -1);
-
+  RTC.alarm(ALARM_2);
+  RTC.alarmInterrupt(ALARM_2, true);
   wdt_reset();
 
 }
 
 void btnInterruptSleep(void) {
   /* This will bring us back from sleep. */
-  /* We detach the interrupt to stop it from
-   * continuously firing while the interrupt pin
-   * is low.
-   */
-  alarmIsrWasCalled = true;
+    alarmIsrWasCalled = true;
 }
 
 void enterSleep(void) {
@@ -568,7 +564,6 @@ void enterSleep(void) {
   sleep_mode();
   /* The program will continue from here. */
 
-  /* First thing to do is disable sleep. */
   if (alarmIsrWasCalled) {
     detachInterrupt(0);
     sleep_disable();
