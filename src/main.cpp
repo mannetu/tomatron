@@ -57,10 +57,10 @@ unsigned int btnDelay =   200; // Debounce delay
 Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin 3 must not be changed!
 
 Magnetvalves valve[CHANNEL] = {
-  Magnetvalves(5, "Tomaten"),
-  Magnetvalves(6, "Gurken"),
-  Magnetvalves(7, "Paprika"),
-  Magnetvalves(8, "Bohnen")
+  Magnetvalves(5, "Valerie"),
+  Magnetvalves(6, "Andreas"),
+  Magnetvalves(7, "Bruno"),
+  Magnetvalves(8, "Lorenz")
 };
 
 Pump pump = Pump(4);
