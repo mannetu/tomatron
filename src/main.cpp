@@ -44,12 +44,12 @@ struct s_giess {
  GND    - LCD chip select (CS)
  pin 10 - LCD reset (RST)
 */
-Adafruit_PCD8544 display = Adafruit_PCD8544(13, 12, 11, 10);
+Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 
 /* Buttons  */
-const byte pinUpBtn =     0;   // Pin Up/Increase-Button
-const byte pinDownBtn =   1;   // Pin Down/Decrease-Button
-const byte pinEnterBtn =  2;   // Pin Enter-Button @ Interupt 0
+const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
+const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
+const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
 
 unsigned int btnDelay =   200; // Debounce delay
 
@@ -57,10 +57,10 @@ unsigned int btnDelay =   200; // Debounce delay
 Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin 3 must not be changed!
 
 Magnetvalves valve[CHANNEL] = {
-  Magnetvalves(5, "Valerie"),
-  Magnetvalves(6, "Andreas"),
-  Magnetvalves(7, "Bruno"),
-  Magnetvalves(8, "Lorenz")
+  Magnetvalves(5, "Tom links"),   // 8 characters max.
+  Magnetvalves(6, "Tom mitte"),
+  Magnetvalves(7, "Tom rechts"),
+  Magnetvalves(8, "Paprika")
 };
 
 Pump pump = Pump(4);
@@ -117,15 +117,13 @@ void setup() {
   setTime(RTC.get());   // the function to get the time from the RTC
 
   /* Set RTC alarm to wake-up microcontroller every minute
-   * Alarm pin of RTC is attached to Pin 3 (Flowmeter)  */
+   * Alarm pin of RTC is attached to Pin 2 (EnterButton)  */
   RTC.squareWave(SQWAVE_NONE);
-
   RTC.alarm(ALARM_1);
   RTC.alarmInterrupt(ALARM_1, false);
   RTC.setAlarm(ALM2_EVERY_MINUTE, 1, 1, 1, 1);
   RTC.alarm(ALARM_2);
   RTC.alarmInterrupt(ALARM_2, true);
-
 
   /* Set pin configuration for buttons */
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required due to interrupt function!!
