@@ -18,8 +18,10 @@
 #define _WaterH_
 #include "water.h"
 
-/* Water channels */
+/* Number of water channels */
 #define CHANNEL 4
+
+/* Display update rate (every x milliseconds) */
 #define DISPLAY_UPDATE 250
 
 /* Giessflag */
@@ -54,7 +56,7 @@ const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
 unsigned int btnDelay =   200; // Debounce delay
 
 /******* Objects *******************/
-Flowmeter flow = Flowmeter(3); // Interupt 1 -> Pin 3 must not be changed!
+Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed!
 
 Magnetvalves valve[CHANNEL] = {
   Magnetvalves(5, "Tom links"),   // 8 characters max.
@@ -63,7 +65,7 @@ Magnetvalves valve[CHANNEL] = {
   Magnetvalves(8, "Paprika")
 };
 
-Pump pump = Pump(4);
+Pump pump(4);// = Pump(4);
 
 volatile boolean alarmIsrWasCalled = true;
 
