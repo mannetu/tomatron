@@ -56,16 +56,16 @@ const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
 unsigned int btnDelay =   200; // Debounce delay
 
 /******* Objects *******************/
-Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed!
+Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
-Magnetvalves valve[CHANNEL] = {
-  Magnetvalves(5, "Tom links"),   // 8 characters max.
-  Magnetvalves(6, "Tom mitte"),
-  Magnetvalves(7, "Tom rechts"),
-  Magnetvalves(8, "Paprika")
+Magnetvalves valve[CHANNEL] = {  // 8 characters max.
+  Magnetvalves(5, "Tom links"),   // ATmega pin 11
+  Magnetvalves(6, "Tom mitte"),   // ATmega pin 12
+  Magnetvalves(7, "Tom rechts"),  // ATmega pin 13
+  Magnetvalves(8, "Paprika")      // ATmega pin 14
 };
 
-Pump pump(4);// = Pump(4);
+Pump pump(4);// = Pump(4);   // ATmega pin 6
 
 volatile boolean alarmIsrWasCalled = true;
 
