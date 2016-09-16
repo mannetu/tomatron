@@ -48,6 +48,7 @@ struct s_giess {
 */
 Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 
+
 /* Buttons  */
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
 const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
@@ -110,6 +111,7 @@ void setup() {
   /* Setup LCD display */
   display.begin(); // init done
   display.setContrast(50);
+  display.setRotation(2);
   display.setTextSize(1);
   display.setTextColor(BLACK);
   delay(1000);
