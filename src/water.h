@@ -58,12 +58,13 @@ class Thermocontrol
   private:
   int m_numberOfTempReadings;
   float m_tempAddition;
-  int m_tempCoeff;
+  float m_tempCoeff;
 
   public:
-  Thermocontrol(int);
+  Thermocontrol(float);
   int AddTempReading(float);
   int GetTempAverage(void);
   void ResetAverage(void);
+  void SetTempCoeff(float);
   float GetGiessFactor(void);
 };

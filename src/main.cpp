@@ -70,8 +70,8 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
 
 Pump pump(4);// = Pump(4);   // ATmega pin 6
 
-//Argument tempCoeff 100 means that vol(30 °C)/vol(20°C) is 1.5
-Thermocontrol thermo(100);
+//Argument is ratio of volume at 30 °C to set volume at 20 °C
+Thermocontrol thermo(1.5);
 
 volatile boolean alarmIsrWasCalled = true;
 

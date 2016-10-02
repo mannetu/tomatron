@@ -145,7 +145,7 @@ void Magnetvalves::setGiessFactor(float giessFactor)
 //----------------------------------------------------------------
 // Thermocontrol class implementation
 
-Thermocontrol::Thermocontrol(int tempCoeff)
+Thermocontrol::Thermocontrol(float tempCoeff)
 {
   m_numberOfTempReadings = 0;
   m_tempAddition = 0;
@@ -179,10 +179,14 @@ float Thermocontrol::GetGiessFactor()
 {
   if (m_numberOfTempReadings)
   {
-    return 1 + (
-      ((m_tempCoeff/100) * ((m_tempAddition / m_numberOfTempReadings) / 20))-1
-    );
+    return
+    1 + (m_tempCoeff * (((m_tempAddition / m_numberOfTempReadings) / 20) - 1));
   }
   else
   return 1;
+}
+
+void Thermocontrol::SetTempCoeff(float tempCoeff)
+{
+  m_tempCoeff = tempCoeff;
 }
