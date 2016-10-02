@@ -95,11 +95,11 @@ byte Magnetvalves::dosing(void) {
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV < this->targetV-1)) {
+  if ((dosingFlag == WATER_BSY) && (currV < (this->targetV-1 * this->m_giessFactor))) {
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV > this->targetV-1)) {
+  if ((dosingFlag == WATER_BSY) && (currV > (this->targetV-1  * this->m_giessFactor))) {
     digitalWrite(this->pin, LOW);
     dosingFlag = WATER_IDLE;
     return 0;
@@ -134,4 +134,54 @@ void Magnetvalves::setCurrentVolume(int vol) {
 
 byte Magnetvalves::readCurrentVolume(void) {
   return currV;
+}
+
+void Magnetvalves::setGiessFactor(float giessFactor)
+{
+  m_giessFactor =  giessFactor;
+}
+
+//----------------------------------------------------------------
+// Thermocontrol class implementation
+
+Thermocontrol::Thermocontrol(int tempCoeff)
+{
+  m_numberOfTempReadings = 0;
+  m_tempAddition = 0;
+  m_tempCoeff = tempCoeff;
+};
+
+int Thermocontrol::AddTempReading(float tempReading)
+{
+  m_tempAddition += tempReading;
+  m_numberOfTempReadings++;
+  return 0;
+}
+
+int Thermocontrol::GetTempAverage()
+{
+  if (m_numberOfTempReadings)
+  {
+    return (m_tempAddition / m_numberOfTempReadings);
+  }
+  else
+  return -1;
+};
+
+void Thermocontrol::ResetAverage()
+{
+  m_tempAddition = 0;
+  m_numberOfTempReadings = 0;
+};
+
+float Thermocontrol::GetGiessFactor()
+{
+  if (m_numberOfTempReadings)
+  {
+    return 1 + (
+      ((m_tempCoeff/100) * ((m_tempAddition / m_numberOfTempReadings) / 20))-1
+    );
+  }
+  else
+  return 1;
 }

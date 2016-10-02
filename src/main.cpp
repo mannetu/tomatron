@@ -68,6 +68,9 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
 
 Pump pump(4);// = Pump(4);   // ATmega pin 6
 
+//Argument tempCoeff 100 means that vol(30 °C)/vol(20°C) is 1.5
+Thermocontrol thermo(100);
+
 volatile boolean alarmIsrWasCalled = true;
 
 /******* Function prototypes *******/
@@ -171,38 +174,45 @@ void setup() {
 
 void loop() {
 
-  /* Enter sleep mode */
+  // If nothing happens
   if(giess.flag == CTRL_IDLE) {
+    // MCU enter sleep
     statusDisplay(CTRL_SLEEP, -1);
     wdt_disable();
     enterSleep();
-    wdt_enable(WDTO_8S);
-    setTime(RTC.get());
+
+    // Continue after wake-up
+    wdt_enable(WDTO_8S); // Enable Watchdog-Timer
+    setTime(RTC.get()); // Update MCU time from RTC
+    thermo.AddTempReading(RTC.temperature()/4); // Temperature measurement
+
     statusDisplay(CTRL_IDLE, -1);
   }
 
+  // Reset RTC alarm
   if (alarmIsrWasCalled) {
     RTC.alarm(ALARM_2);
     alarmIsrWasCalled = false;
   }
 
-  /* Check if it is time for giessing */
+
+  // Check if it is time for giessing */
   if (giess.flag == CTRL_IDLE) {
     giess.flag = checkGiessen();
   }
 
-  /* Update Display every DISPLAY_UPDATE ms*/
+  // Update Display every DISPLAY_UPDATE ms*/
   if ((millis() - giess.lastCall > DISPLAY_UPDATE)) {
     statusDisplay(giess.flag, -1);
     giess.lastCall = millis();
   }
 
-  /* If giessing, then check progress */
+  // If giessing, then check progress */
   if (giess.flag > CTRL_IDLE) {   // that is active channel 0, 1, 2, or 3
     giessRoutine();
   }
 
-  /* On enter btn press, start mode to set time, giessTime and target volumes */
+  // On enter btn press, start mode to set time, giessTime and target volumes */
   if (digitalRead(pinEnterBtn) == 0) {
     setParameters();
   }
@@ -227,12 +237,14 @@ void giessRoutine() {
   valve[giess.flag].setCurrentVolume(flow.getVolume());
 
   if (valve[giess.flag].dosing() == 0) {
+    valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
     flow.resetFlowMeter();
     giess.flag++; delay(100);
   }
 
   if (giess.flag > CHANNEL-1) {
     pump.stop();
+    thermo.ResetAverage();
     giess.flag = CTRL_IDLE;
     RTC.alarm(ALARM_2);
     RTC.alarmInterrupt(ALARM_2, true);
@@ -245,35 +257,43 @@ void statusDisplay(int gf, int ch) {
   display.clearDisplay();
   display.setCursor(0, 0);
 
-  /* Display if nothing is active or parameter set mode */
-  if (gf < 0) {   // -1 or -2
+  //-------------------------------------------
+  // Display if nothing is active or parameter set mode
+
+  if (gf < 0) {   //  -1 or -2
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
 
-    /* Print current time */
+  // Print current time
+    if(hour() < 10) display.print(' ');
     display.print(hour());
     display.print(":");
     if(minute() < 10) display.print('0');
     display.print(minute());
     display.setTextColor(BLACK, WHITE);
 
-    /* Print giess time */
-    display.setCursor(40, 0);
+  // Print giessFactor
+    display.setCursor(32, 0);
+    display.print(thermo.GetGiessFactor(), 1);
+
+  // Print giess time
+    display.setCursor(52, 0);
     if (gf == -3) {
-      display.print("S>");
+    //  display.print("S");
       } else {
-        display.print(">>");
+      //  display.print(">");
       }
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
+    if(hour(giess.time) < 10) display.print(' ');
     display.print(hour(giess.time)); display.print(":");
     if(minute(giess.time) < 10) display.print('0');
     display.print(minute(giess.time));
     display.setTextColor(BLACK, WHITE);
 
-    /* Print channel information */
+  // Print channel information
     for (int i = 0; i < CHANNEL; i++) {
-      display.setCursor(0, (8*i+15));
+      display.setCursor(0, (8*i + 15));
       display.print(valve[i].getPlant());
-      display.setCursor(50, (8*i+15));
+      display.setCursor(50, (8 * i+15));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
       if (valve[i].readVolumeTarget()<100) display.print(" ");
       if (valve[i].readVolumeTarget()<10) display.print(" ");
@@ -285,7 +305,9 @@ void statusDisplay(int gf, int ch) {
     return;
   }
 
-  /* Display during active giessing */
+  //-------------------------------------------
+  // Display during active giessing
+
   if (gf > -1) {
 
     display.setTextColor(WHITE, BLACK);
@@ -294,17 +316,12 @@ void statusDisplay(int gf, int ch) {
     if (blink_flag++ < 4) display.print(" WASSER ");
     blink_flag %= 6;
     display.setTextColor(BLACK, WHITE);
-
-    /* Print pulse count */
-    //display.println(flow.getPulseCount());
-
     display.setCursor(50, 0);
+
     if (valve[gf].readCurrentVolume() < 100) display.print(" ");
     if (valve[gf].readCurrentVolume() < 10) display.print(" ");
     display.print(valve[gf].readCurrentVolume());
     display.print(" L");
-
-
 
     for (int i = 0; i < CHANNEL; i++) {
     /* Display active channel */
@@ -315,9 +332,9 @@ void statusDisplay(int gf, int ch) {
         display.print(valve[i].getPlant());
         display.print("   ");
         display.setCursor(50, (8*i+15));
-        if (valve[i].readVolumeTarget()<100) display.print(" ");
-        if (valve[i].readVolumeTarget()<10) display.print(" ");
-        display.print(valve[i].readVolumeTarget());
+        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 100) display.print(" ");
+        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        display.print(valve[i].readVolumeTarget() * thermo.GetGiessFactor());
         display.println(" L");
         display.setTextColor(BLACK, WHITE);
 
@@ -328,9 +345,9 @@ void statusDisplay(int gf, int ch) {
         display.setCursor(0, (8*i+15));
         display.print(valve[i].getPlant());
         display.setCursor(50, (8*i+15));
-        if (valve[i].readVolumeTarget()<100) display.print(" ");
-        if (valve[i].readVolumeTarget()<10) display.print(" ");
-        display.print(valve[i].readVolumeTarget());
+        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() <100) display.print(" ");
+        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        display.print(valve[i].readVolumeTarget() * thermo.GetGiessFactor());
         display.println(" L");
 
       }

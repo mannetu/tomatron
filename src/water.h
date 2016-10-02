@@ -1,9 +1,9 @@
 /* water.h */
 
 #include <Arduino.h>
+#include <DS3232RTC.h>
 
 enum statusFlag {WATER_IDLE, WATER_BSY};
-
 
 class Flowmeter {
   private:
@@ -34,6 +34,7 @@ class Magnetvalves {
   private:
     byte pin;
     byte targetV;
+    float m_giessFactor;
     byte currV;
     char plant[9];
   public:
@@ -47,4 +48,22 @@ class Magnetvalves {
     byte  dosing(byte);
     void setCurrentVolume(int);
     byte  readCurrentVolume(void);
+    void setGiessFactor(float);
+    float getGiessFactor(void);
+};
+
+
+class Thermocontrol
+{
+  private:
+  int m_numberOfTempReadings;
+  float m_tempAddition;
+  int m_tempCoeff;
+
+  public:
+  Thermocontrol(int);
+  int AddTempReading(float);
+  int GetTempAverage(void);
+  void ResetAverage(void);
+  float GetGiessFactor(void);
 };
