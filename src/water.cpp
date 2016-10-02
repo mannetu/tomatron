@@ -69,7 +69,6 @@ Magnetvalves::Magnetvalves(byte p, const char *name) {
   /* Set pin configuration for valves */
   pinMode(pin, OUTPUT);
   strncpy(plant, name, 8);
-
 }
 
 void Magnetvalves::setVolumeTarget(int v) {
@@ -78,6 +77,8 @@ void Magnetvalves::setVolumeTarget(int v) {
 
 void Magnetvalves::incVolumeTarget(int i) {
   targetV += i;
+  if (targetV == 100) targetV = 0;
+  if (targetV == 255) targetV = 99;
 }
 
 byte Magnetvalves::readVolumeTarget() {

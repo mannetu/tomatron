@@ -19,7 +19,7 @@
 #include "water.h"
 
 /* Number of water channels */
-#define CHANNEL 4
+#define CHANNEL 6
 
 /* Display update rate (every x milliseconds) */
 #define DISPLAY_UPDATE 250
@@ -39,12 +39,12 @@ struct s_giess {
 } giess;
 
 /*** Nokia 5110 Display  ******
- Software SPI (slower updates, more flexible pin options):
- pin 13 - Serial clock out (SCLK)
- pin 12 - Serial data out (DIN)
- pin 11 - Data/Command select (D/C)
- GND    - LCD chip select (CS)
- pin 10 - LCD reset (RST)
+Software SPI (slower updates, more flexible pin options):
+pin 13 - Serial clock out (SCLK)
+pin 12 - Serial data out (DIN)
+pin 11 - Data/Command select (D/C)
+GND    - LCD chip select (CS)
+pin 10 - LCD reset (RST)
 */
 Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 
@@ -60,10 +60,12 @@ unsigned int btnDelay =   200; // Debounce delay
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
-  Magnetvalves(5, "Tom links"),   // ATmega pin 11
-  Magnetvalves(6, "Tom mitte"),   // ATmega pin 12
-  Magnetvalves(7, "Tom rechts"),  // ATmega pin 13
-  Magnetvalves(8, "Paprika")      // ATmega pin 14
+  Magnetvalves(5, "To1  "),   // ATmega pin 11
+  Magnetvalves(6, "To2  "),   // ATmega pin 12
+  Magnetvalves(7, "To3  "),  // ATmega pin 13
+  Magnetvalves(8, "Pa1  "),      // ATmega pin 14
+  Magnetvalves(0, "Pa2  "),      // ATmega pin __
+  Magnetvalves(1, "Gu1  ")      // ATmega pin __
 };
 
 Pump pump(4);// = Pump(4);   // ATmega pin 6
@@ -124,7 +126,7 @@ void setup() {
   setTime(RTC.get());   // the function to get the time from the RTC
 
   /* Set RTC alarm to wake-up microcontroller every minute
-   * Alarm pin of RTC is attached to Pin 2 (EnterButton)  */
+  * Alarm pin of RTC is attached to Pin 2 (EnterButton)  */
   RTC.squareWave(SQWAVE_NONE);
   RTC.alarm(ALARM_1);
   RTC.alarmInterrupt(ALARM_1, false);
@@ -160,7 +162,6 @@ void setup() {
     valve[i].setVolumeTarget(vol);
   }
 
-
   /* If Enter is pressed at boot, enter calibration mode */
   if (digitalRead(pinEnterBtn) == LOW) {
     display.clearDisplay();
@@ -168,9 +169,8 @@ void setup() {
     delay(2000);
     calibration();
   }
-
   statusDisplay(-1, -1);
-  }
+}
 
 void loop() {
 
@@ -194,7 +194,6 @@ void loop() {
     RTC.alarm(ALARM_2);
     alarmIsrWasCalled = false;
   }
-
 
   // Check if it is time for giessing */
   if (giess.flag == CTRL_IDLE) {
@@ -263,7 +262,7 @@ void statusDisplay(int gf, int ch) {
   if (gf < 0) {   //  -1 or -2
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
 
-  // Print current time
+    // Print current time
     if(hour() < 10) display.print(' ');
     display.print(hour());
     display.print(":");
@@ -271,17 +270,18 @@ void statusDisplay(int gf, int ch) {
     display.print(minute());
     display.setTextColor(BLACK, WHITE);
 
-  // Print giessFactor
-    display.setCursor(32, 0);
+    // Print giessFactor
+    display.setCursor(50, 35);
+    display.print("x");
     display.print(thermo.GetGiessFactor(), 1);
 
-  // Print giess time
-    display.setCursor(52, 0);
+    // Print giess time
+    display.setCursor(46, 0);
     if (gf == -3) {
-    //  display.print("S");
-      } else {
-      //  display.print(">");
-      }
+      display.print("G");
+    } else {
+      display.print(">");
+    }
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
     if(hour(giess.time) < 10) display.print(' ');
     display.print(hour(giess.time)); display.print(":");
@@ -289,16 +289,25 @@ void statusDisplay(int gf, int ch) {
     display.print(minute(giess.time));
     display.setTextColor(BLACK, WHITE);
 
-  // Print channel information
-    for (int i = 0; i < CHANNEL; i++) {
+    // Print channel left column
+    for (int i = 0; i < 4; i++) {
       display.setCursor(0, (8*i + 15));
-      display.print(valve[i].getPlant());
-      display.setCursor(50, (8 * i+15));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
-      if (valve[i].readVolumeTarget()<100) display.print(" ");
+      display.print(valve[i].getPlant());
+      display.setCursor(26, (8 * i+15));
       if (valve[i].readVolumeTarget()<10) display.print(" ");
-      display.print(valve[i].readVolumeTarget());
-      display.println(" L");
+      display.println(valve[i].readVolumeTarget());
+      display.setTextColor(BLACK, WHITE);
+    }
+
+    // Print channel right column
+    for (int i = 4; i < CHANNEL; i++) {
+      display.setCursor(44, (8*(i-4) + 15));
+      if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
+      display.print(valve[i].getPlant());
+      display.setCursor(70, (8 * (i-4)+15));
+      if (valve[i].readVolumeTarget()<10) display.print(" ");
+      display.println(valve[i].readVolumeTarget());
       display.setTextColor(BLACK, WHITE);
     }
     display.display(); // show screen
@@ -316,40 +325,59 @@ void statusDisplay(int gf, int ch) {
     if (blink_flag++ < 4) display.print(" WASSER ");
     blink_flag %= 6;
     display.setTextColor(BLACK, WHITE);
-    display.setCursor(50, 0);
+    display.setCursor(58, 0);
 
-    if (valve[gf].readCurrentVolume() < 100) display.print(" ");
     if (valve[gf].readCurrentVolume() < 10) display.print(" ");
     display.print(valve[gf].readCurrentVolume());
     display.print(" L");
 
-    for (int i = 0; i < CHANNEL; i++) {
-    /* Display active channel */
+    // Left column
+    for (int i = 0; i < 4; i++) {
+      /* Display active channel */
       if (i == gf)
       {
         display.setTextColor(WHITE, BLACK);
         display.setCursor(0, (8*i+15));
         display.print(valve[i].getPlant());
         display.print("   ");
-        display.setCursor(50, (8*i+15));
-        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 100) display.print(" ");
+        display.setCursor(26, (8*i+15));
         if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
-        display.print(valve[i].readVolumeTarget() * thermo.GetGiessFactor());
-        display.println(" L");
+        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
         display.setTextColor(BLACK, WHITE);
-
       }
       else
       /* Display idle channel */
       {
         display.setCursor(0, (8*i+15));
         display.print(valve[i].getPlant());
-        display.setCursor(50, (8*i+15));
-        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() <100) display.print(" ");
+        display.setCursor(26, (8*i+15));
         if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
-        display.print(valve[i].readVolumeTarget() * thermo.GetGiessFactor());
-        display.println(" L");
+        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
+      }
+    }
 
+    // Right column
+    for (int i = 4; i < CHANNEL; i++) {
+      /* Display active channel */
+      if (i == gf)
+      {
+        display.setTextColor(WHITE, BLACK);
+        display.setCursor(44, (8*(i-4)+15));
+        display.print(valve[i].getPlant());
+        display.print("   ");
+        display.setCursor(70, (8*(i-4)+15));
+        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
+        display.setTextColor(BLACK, WHITE);
+      }
+      else
+      /* Display idle channel */
+      {
+        display.setCursor(44, (8*(i-4)+15));
+        display.print(valve[i].getPlant());
+        display.setCursor(70, (8*(i-4)+15));
+        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
       }
     }
     display.display(); // show screen
@@ -570,7 +598,7 @@ void writeParameters() {
 
 void btnInterruptSleep(void) {
   /* This will bring us back from sleep. */
-    alarmIsrWasCalled = true;
+  alarmIsrWasCalled = true;
 }
 
 void enterSleep(void) {
