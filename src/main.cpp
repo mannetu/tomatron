@@ -18,13 +18,13 @@
 #define _WaterH_
 #include "water.h"
 
-/* Number of water channels */
+// Number of water channels
 #define CHANNEL 6
 
-/* Display update rate (every x milliseconds) */
+// Display update rate (milliseconds)
 #define DISPLAY_UPDATE 250
 
-/* Giessflag */
+// Giessflag
 enum giessFlag {
   CTRL_SLEEP = -3,
   CTRL_SET = -2,
@@ -38,25 +38,29 @@ struct s_giess {
   time_t time;
 } giess;
 
-/*** Nokia 5110 Display  ******
-Software SPI (slower updates, more flexible pin options):
-pin 13 - Serial clock out (SCLK)
-pin 12 - Serial data out (DIN)
-pin 11 - Data/Command select (D/C)
-GND    - LCD chip select (CS)
-pin 10 - LCD reset (RST)
-*/
+//---------------------------------------------------------
+// Nokia 5110 Display
+// Software SPI (slower updates, more flexible pin options):
+// pin 13 - Serial clock out (SCLK)
+// pin 12 - Serial data out (DIN)
+// pin 11 - Data/Command select (D/C)
+// GND    - LCD chip select (CS)
+// pin 10 - LCD reset (RST)
+
 Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 
+//---------------------------------------------------------
+// Buttons
 
-/* Buttons  */
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
 const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
 const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
 
 unsigned int btnDelay =   200; // Debounce delay
 
-/******* Objects *******************/
+//---------------------------------------------------------
+// Objects
+
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
@@ -70,12 +74,14 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
 
 Pump pump(4);// = Pump(4);   // ATmega pin 6
 
-//Argument is ratio of volume at 30 °C to set volume at 20 °C
+// Ratio of dispensed volume at 30 °C to set volume at 20 °C
 Thermocontrol thermo(1.5);
 
 volatile boolean alarmIsrWasCalled = true;
 
-/******* Function prototypes *******/
+//---------------------------------------------------------
+// Function prototypes
+
 int checkGiessen(void);
 void giessRoutine(void);
 void statusDisplay(int, int);
@@ -93,9 +99,11 @@ void btnInterruptSleep(void);
 void enterSleep(void);
 
 
-/****** Functions ******************/
-void setup() {
-
+//---------------------------------------------------------
+// Setup
+//---------------------------------------------------------
+void setup()
+{
   /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING ********************
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
   RTC.set(now());
@@ -172,6 +180,10 @@ void setup() {
   statusDisplay(-1, -1);
 }
 
+
+//--------------------------------------------------------------
+// Function name: loop()
+//--------------------------------------------------------------
 void loop()
 {
   // If nothing happens
@@ -216,8 +228,14 @@ void loop()
   wdt_reset();
 }
 
-int checkGiessen() {
-  /* Check if time for giessen */
+
+//--------------------------------------------------------------
+// Function name: checkGiessen
+//
+// checks if it is time for giessen
+//--------------------------------------------------------------
+int checkGiessen()
+{
   if ((hour(giess.time) == hour()) && (minute(giess.time) == minute()))
   {
     flow.resetFlowMeter();
@@ -227,8 +245,12 @@ int checkGiessen() {
   return CTRL_IDLE;
 }
 
-void giessRoutine() {
-  /* Giessen routines */
+
+//--------------------------------------------------------------
+// Function name: giessRoutine
+//--------------------------------------------------------------
+void giessRoutine()
+{
   if (pump.start()) delay(2000); // wait for 2s if pump had to be started
 
   valve[giess.flag].setCurrentVolume(flow.getVolume());
@@ -250,13 +272,17 @@ void giessRoutine() {
   }
 }
 
-void statusDisplay(int gf, int ch) {
 
+//--------------------------------------------------------------
+// Status Display
+//--------------------------------------------------------------
+void statusDisplay(int gf, int ch)
+{
   static byte blink_flag = 1;
   display.clearDisplay();
   display.setCursor(0, 0);
 
-  //--------------------------------------------------------------
+  //---------------------------------------------------
   // Display if nothing is active or parameter set mode
 
   if (gf < 0)    //  -1 or -2
@@ -395,11 +421,19 @@ void statusDisplay(int gf, int ch) {
   }
 }
 
+
+//--------------------------------------------------------------
+// Function name: interuptPulse()
+//--------------------------------------------------------------
 void interuptPulse()
 {
   flow.pulse();
 }
 
+
+//--------------------------------------------------------------
+// Function name: calibration()
+//--------------------------------------------------------------
 void calibration()
 {
   int cf; // calibration factor
@@ -457,6 +491,10 @@ void calibration()
   wdt_enable(WDTO_8S);
 }
 
+
+//--------------------------------------------------------------
+// Function name: calibrationDoseDisplay()
+//--------------------------------------------------------------
 void calibrationDoseDisplay(int vol)
 {
   display.clearDisplay();
@@ -539,16 +577,18 @@ void setParameters()
   lastActivity = millis();
 
   // Set Clock
-  while (digitalRead(pinEnterBtn)) {
-
-    if (digitalRead(pinUpBtn) == 0) {
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
       adjustTime(60);  // Function of time library. Adds given seconds to time.
       delay(btnDelay/5);
       lastActivity = millis();
       wdt_reset();
     }
 
-    if (digitalRead(pinDownBtn) == 0) {
+    if (digitalRead(pinDownBtn) == 0)
+    {
       adjustTime(-60);  // Function of time library. Adds given seconds to time.
       delay(btnDelay/5);
       lastActivity = millis();
@@ -559,7 +599,8 @@ void setParameters()
     statusDisplay(-2, -2);
 
     // Save changes and return if not button was pressed for 5 seconds
-    if (millis() - lastActivity > 5000) {
+    if (millis() - lastActivity > 5000)
+    {
       writeParameters();
       return;
     }
@@ -570,16 +611,18 @@ void setParameters()
   wdt_reset();
 
   // Set Timer
-  while (digitalRead(pinEnterBtn)) {
-
-    if (digitalRead(pinUpBtn) == 0) {
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
       giess.time += 60;
       lastActivity = millis();
       wdt_reset();
       delay(btnDelay/5);
     }
 
-    if (digitalRead(pinDownBtn) == 0) {
+    if (digitalRead(pinDownBtn) == 0)
+    {
       giess.time -= 60;
       lastActivity = millis();
       wdt_reset();
@@ -599,7 +642,6 @@ void setParameters()
   delay(btnDelay);
   wdt_reset();
   writeParameters();
-
 }
 
 void writeParameters()
