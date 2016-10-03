@@ -174,14 +174,14 @@ void setup()
   // Read calibration factor from EEPROM
   int cf;
   EEPROM.get(eeAdress, cf);
-  eeAdress += sizeof(int); // Move write position to temperature factor
   flow.setCalibrationFactor(cf);
+  eeAdress += sizeof(int); // Move write position to temperature factor
 
   // Read temperature factor factor from EEPROM
   float tf;
   EEPROM.get(eeAdress, tf);
-  eeAdress += sizeof(float); // Move write position to volume targets
   thermo.SetTempCoeff(tf);
+  eeAdress += sizeof(float); // Move write position to volume targets
 
   // Read volume targets from EEPROM
   int vol;
@@ -260,6 +260,8 @@ int checkGiessen()
   if ((hour(giess.time) == hour()) && (minute(giess.time) == minute()))
   {
     flow.resetFlowMeter();
+    // valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
+
     RTC.alarmInterrupt(ALARM_2, false);
     return CTRL_ACT;
   }
@@ -278,7 +280,6 @@ void giessRoutine()
 
   if (valve[giess.flag].dosing() == 0)
   {
-    valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
     flow.resetFlowMeter();
     giess.flag++; delay(100);
   }
@@ -328,13 +329,13 @@ void statusDisplay(int gf, int ch)
     {
       display.setTextColor(WHITE, BLACK);
       display.print("f");
-      display.print(thermo.GetTempCoeff(), 1);
+      display.print(thermo.GetTempCoeff(), 2);
       display.setTextColor(BLACK, WHITE);
     }
     else
     {
       display.print("x");
-      display.print(thermo.GetGiessFactor(), 1);
+      display.print(thermo.GetGiessFactor(), 2);
     }
 
     // Print giess time
@@ -397,9 +398,9 @@ void statusDisplay(int gf, int ch)
 
     // Print current volume (in box bottom right)
     display.setTextColor(BLACK, WHITE);
-    display.setCursor(50, 36);
+    display.setCursor(45, 36);
     if (valve[gf].readCurrentVolume() < 10) display.print(" ");
-    display.print(valve[gf].readCurrentVolume());
+    display.print(valve[gf].readCurrentVolume(), 1);
     display.print(" L");
 
     // Left column
@@ -411,7 +412,7 @@ void statusDisplay(int gf, int ch)
         display.setCursor(0, (8*i+13));
         display.print(valve[i].getPlant());
         display.setCursor(26, (8*i+13));
-        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
         display.setTextColor(BLACK, WHITE);
       }
@@ -420,7 +421,7 @@ void statusDisplay(int gf, int ch)
         display.setCursor(0, (8*i+13));
         display.print(valve[i].getPlant());
         display.setCursor(26, (8*i+13));
-        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
       }
     }
@@ -434,7 +435,7 @@ void statusDisplay(int gf, int ch)
         display.setCursor(44, (8*(i-4)+13));
         display.print(valve[i].getPlant());
         display.setCursor(70, (8*(i-4)+13));
-        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
         display.setTextColor(BLACK, WHITE);
       }
@@ -443,7 +444,7 @@ void statusDisplay(int gf, int ch)
         display.setCursor(44, (8*(i-4)+13));
         display.print(valve[i].getPlant());
         display.setCursor(70, (8*(i-4)+13));
-        if (valve[i].readVolumeTarget() * thermo.GetGiessFactor() < 10) display.print(" ");
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
       }
     }
