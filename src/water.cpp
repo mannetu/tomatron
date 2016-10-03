@@ -204,7 +204,7 @@ float Thermocontrol::GetGiessFactor()
   if (m_numberOfTempReadings)
   {
     return
-    1 + (m_tempCoeff * (((m_tempAddition / m_numberOfTempReadings) / 20) - 1));
+    pow(m_tempCoeff, (((m_tempAddition / m_numberOfTempReadings) / 20) - 1));
   }
   else
   return 1;

@@ -329,13 +329,13 @@ void statusDisplay(int gf, int ch)
     {
       display.setTextColor(WHITE, BLACK);
       display.print("f");
-      display.print(thermo.GetTempCoeff(), 2);
+      display.print(thermo.GetTempCoeff(), 1);
       display.setTextColor(BLACK, WHITE);
     }
     else
     {
       display.print("x");
-      display.print(thermo.GetGiessFactor(), 2);
+      display.print(thermo.GetGiessFactor(), 1);
     }
 
     // Print giess time
