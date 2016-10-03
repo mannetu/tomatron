@@ -190,3 +190,13 @@ void Thermocontrol::SetTempCoeff(float tempCoeff)
 {
   m_tempCoeff = tempCoeff;
 }
+
+void Thermocontrol::IncTempCoeff(float inc)
+{
+  m_tempCoeff += inc;
+}
+
+float Thermocontrol::GetTempCoeff(void)
+{
+  return m_tempCoeff;
+}

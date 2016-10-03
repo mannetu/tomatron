@@ -18,12 +18,15 @@
 #define _WaterH_
 #include "water.h"
 
+//---------------------------------------------------------
 // Number of water channels
 #define CHANNEL 6
 
+//---------------------------------------------------------
 // Display update rate (milliseconds)
 #define DISPLAY_UPDATE 250
 
+//---------------------------------------------------------
 // Giessflag
 enum giessFlag {
   CTRL_SLEEP = -3,
@@ -40,6 +43,7 @@ struct s_giess {
 
 //---------------------------------------------------------
 // Nokia 5110 Display
+
 // Software SPI (slower updates, more flexible pin options):
 // pin 13 - Serial clock out (SCLK)
 // pin 12 - Serial data out (DIN)
@@ -64,15 +68,15 @@ unsigned int btnDelay =   200; // Debounce delay
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
-  Magnetvalves(5, "To1  "),   // ATmega pin 11
-  Magnetvalves(6, "To2  "),   // ATmega pin 12
+  Magnetvalves(5, "To1  "),  // ATmega pin 11
+  Magnetvalves(6, "To2  "),  // ATmega pin 12
   Magnetvalves(7, "To3  "),  // ATmega pin 13
-  Magnetvalves(8, "Pa1  "),      // ATmega pin 14
-  Magnetvalves(0, "Pa2  "),      // ATmega pin __
-  Magnetvalves(1, "Gu1  ")      // ATmega pin __
+  Magnetvalves(8, "Pa1  "),  // ATmega pin 14
+  Magnetvalves(0, "Pa2  "),  // ATmega pin __
+  Magnetvalves(1, "Gu1  ")   // ATmega pin __
 };
 
-Pump pump(4);// = Pump(4);   // ATmega pin 6
+Pump pump(4); // ATmega pin 6
 
 // Ratio of dispensed volume at 30 °C to set volume at 20 °C
 Thermocontrol thermo(1.5);
@@ -99,17 +103,24 @@ void btnInterruptSleep(void);
 void enterSleep(void);
 
 
-//---------------------------------------------------------
+//-------------------------------------------------------------------
 // Setup
-//---------------------------------------------------------
+//-------------------------------------------------------------------
 void setup()
 {
-  /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING ********************
+  /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING *******************
   setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
   RTC.set(now());
   giess.time = now() + 3600;
+  int eepromAdress = 0;
   EEPROM.put(0, giess.time);
-  EEPROM.put(sizeof(time_t), 480); // 480 Pulse/L calculated from datasheet
+  eepromAdress += sizeof(time_t);
+
+  EEPROM.put(eepromAdress, 480); // 480 Pulse/L calculated from datasheet
+  eepromAdress += sizeof(int);
+
+  float thermoCoeff = 1.5;
+  EEPROM.put(eepromAdress, thermoCoeff);
   *********************************************************************/
 
   /* Power management */
@@ -159,8 +170,14 @@ void setup()
   /* Read calibration factor from EEPROM */
   int cf;
   EEPROM.get(eeAdress, cf);
-  eeAdress += sizeof(int); // Set position to volume targets (after cf)
+  eeAdress += sizeof(int); // Set position to temperature factor (after cf)
   flow.setCalibrationFactor(cf);
+
+  /* Read temperature factor factor from EEPROM */
+  float tf;
+  EEPROM.get(eeAdress, tf);
+  eeAdress += sizeof(float); // Set position to volume targets (after tf)
+  thermo.SetTempCoeff(tf);
 
   /* Read volume targets from EEPROM */
   int vol;
@@ -303,8 +320,18 @@ void statusDisplay(int gf, int ch)
 
     // Print giessFactor
     display.setCursor(50, 36);
-    display.print("x");
-    display.print(thermo.GetGiessFactor(), 1);
+    if (gf == -2 && ch == -3)
+    {
+      display.setTextColor(WHITE, BLACK);
+      display.print("f");
+      display.print(thermo.GetTempCoeff(), 1);
+      display.setTextColor(BLACK, WHITE);
+    }
+    else
+    {
+      display.print("x");
+      display.print(thermo.GetGiessFactor(), 1);
+    }
 
     // Print giess time
     display.setCursor(46, 0);
@@ -640,6 +667,39 @@ void setParameters()
   }
 
   delay(btnDelay);
+  lastActivity = millis();
+  wdt_reset();
+
+  // Set ThermoCoeff
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      thermo.IncTempCoeff(0.1);
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      thermo.IncTempCoeff(-0.1);
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    // Update display
+    statusDisplay(-2, -3);
+
+    // Save changes and return if not button was pressed for 5 seconds
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+  }
+
+  delay(btnDelay);
   wdt_reset();
   writeParameters();
 }
@@ -649,9 +709,13 @@ void writeParameters()
   // Write new giessTime to EEPROM
   int eeAdress = 0;
   EEPROM.put(eeAdress, giess.time);
+  eeAdress += (sizeof(time_t) + sizeof(int));
+
+  // Write new thermoCoef to EEPROM
+  EEPROM.put(eeAdress, thermo.GetTempCoeff());
+  eeAdress += sizeof(float);
 
   // Write new volume targets to EEPROM
-  eeAdress += (sizeof(time_t) + sizeof(int));
   int i;
   for (i = 0; i < CHANNEL; i++)
   {

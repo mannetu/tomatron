@@ -66,5 +66,7 @@ class Thermocontrol
   int GetTempAverage(void);
   void ResetAverage(void);
   void SetTempCoeff(float);
+  void IncTempCoeff(float);
+  float GetTempCoeff(void);
   float GetGiessFactor(void);
 };
