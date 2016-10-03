@@ -79,6 +79,7 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
 Pump pump(4); // ATmega pin 6
 
 // Ratio of dispensed volume at 30 °C to set volume at 20 °C
+// During setup() value of 1.5 will be overwritten with data from EEPROM
 Thermocontrol thermo(1.5);
 
 volatile boolean alarmIsrWasCalled = true;
@@ -86,21 +87,21 @@ volatile boolean alarmIsrWasCalled = true;
 //---------------------------------------------------------
 // Function prototypes
 
-int checkGiessen(void);
-void giessRoutine(void);
-void statusDisplay(int, int);
+int   checkGiessen(void);
+void  giessRoutine(void);
+void  statusDisplay(int, int);
 
-void interruptPulse(void);
+void  interruptPulse(void);
 
-void calibration();
-void calibrationDoseDisplay(int);
-void calibrationDisplay(double);
+void  setParameters(void);
+void  writeParameters();
 
-void setParameters(void);
-void writeParameters();
+void  btnInterruptSleep(void);
+void  enterSleep(void);
 
-void btnInterruptSleep(void);
-void enterSleep(void);
+void  calibration();
+void  calibrationDoseDisplay(int);
+void  calibrationDisplay(double);
 
 
 //-------------------------------------------------------------------
@@ -461,6 +462,235 @@ void interuptPulse()
 }
 
 
+//-------------------------------------------------------------
+// Parameter Set Routine
+//-------------------------------------------------------------
+void setParameters()
+{
+  RTC.alarmInterrupt(ALARM_2, false);
+
+  int channel = 0;
+  long lastActivity;
+
+  delay(2 *  btnDelay);
+  lastActivity = millis();
+
+  // Set target volumes
+  while (channel < CHANNEL)
+  {
+    if (digitalRead(pinEnterBtn) == 0) // Choose next channel
+    {
+      channel++;
+      delay(btnDelay);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    if (digitalRead(pinUpBtn) == 0) // Increase volume
+    {
+      valve[channel].incVolumeTarget(1);
+      statusDisplay(-2, channel);
+      delay(btnDelay);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    if (digitalRead(pinDownBtn) == 0) // Decrease volume
+    {
+      valve[channel].incVolumeTarget(-1);
+      statusDisplay(-2, channel);
+      delay(btnDelay);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    statusDisplay(-2, channel);  // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000)
+    {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+
+  // Set Timer
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      giess.time += 60;
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      giess.time -= 60;
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    statusDisplay(-2, -1);  // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+  wdt_reset();
+
+  // Set ThermoCoeff
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      thermo.IncTempCoeff(0.1);
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      thermo.IncTempCoeff(-0.1);
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    statusDisplay(-2, -3);   // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+  wdt_reset();
+
+  // Set Daytime
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      adjustTime(60);  // Function of time library adds seconds
+      delay(btnDelay/5);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      adjustTime(-60);  // Function of time library adds seconds
+      delay(btnDelay/5);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    statusDisplay(-2, -2); // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000)
+    {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  // If Enter button was pressed during daytime setting
+  delay(2*btnDelay);
+  wdt_reset();
+  writeParameters();
+}
+
+//---------------------------------------------------------------------
+// void writeParameters(void)
+// Writes parameters from setParameters() function to EEPROM or RTC
+//---------------------------------------------------------------------
+void writeParameters()
+{
+  // Write new giessTime to EEPROM
+  int eeAdress = 0;
+  EEPROM.put(eeAdress, giess.time);
+  eeAdress += (sizeof(time_t) + sizeof(int));
+
+  // Write new TempCoeff to EEPROM
+  EEPROM.put(eeAdress, thermo.GetTempCoeff());
+  eeAdress += sizeof(float);
+
+  // Write new volume targets to EEPROM
+  int i;
+  for (i = 0; i < CHANNEL; i++)
+  {
+    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
+    eeAdress += sizeof(int);
+  }
+
+  // Write new daytime to RTC
+  RTC.set(now());
+
+  // Show normal display
+  statusDisplay(CTRL_IDLE, -1);
+  RTC.alarm(ALARM_2);
+  RTC.alarmInterrupt(ALARM_2, true);
+  wdt_reset();
+}
+
+//---------------------------------------------------------------------
+// void btnInterruptSleep(void)
+// Interrupt handler for RTC alarm
+//---------------------------------------------------------------------
+void btnInterruptSleep(void) // Back from sleep
+{
+  alarmIsrWasCalled = true;
+}
+
+//---------------------------------------------------------------------
+// void enterSleep(void)
+//
+//---------------------------------------------------------------------
+void enterSleep(void)
+{
+  // Detach flow-meter pin from interrupt
+  detachInterrupt(digitalPinToInterrupt(flow.getPin()));
+
+  // Set pin2 (connected to Enter Button and RTC alarm) as interrupt
+  // and attach handler function btnInterruptSleep()
+  attachInterrupt(digitalPinToInterrupt(pinEnterBtn), btnInterruptSleep, FALLING);
+
+  // Set sleep properties
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+
+  // Let MCU go to sleep
+  sleep_mode();
+
+  // ** After interrupt The program will continue from here
+  if (alarmIsrWasCalled)
+  {
+    detachInterrupt(0);
+    sleep_disable();
+  }
+}
+
+
 //--------------------------------------------------------------
 // Function name: calibration()
 //--------------------------------------------------------------
@@ -547,214 +777,4 @@ void calibrationDisplay(double vol)
   display.println();
   display.print(vol, 1); display.println(" kg");
   display.display();
-}
-
-void setParameters()
-{
-  RTC.alarmInterrupt(ALARM_2, false);
-
-  int channel = 0;
-  long lastActivity;
-
-  delay(2 *  btnDelay);
-  lastActivity = millis();
-
-  // Set target volumes
-  while (channel < CHANNEL)
-  {
-    // Choose next channel
-    if (digitalRead(pinEnterBtn) == 0)
-    {
-      channel++;
-      delay(btnDelay);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    // Increase volume
-    if (digitalRead(pinUpBtn) == 0)
-    {
-      valve[channel].incVolumeTarget(1);
-      statusDisplay(-2, channel);
-      delay(btnDelay);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    // Decrease volume
-    if (digitalRead(pinDownBtn) == 0)
-    {
-      valve[channel].incVolumeTarget(-1);
-      statusDisplay(-2, channel);
-      delay(btnDelay);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    // Update display
-    statusDisplay(-2, channel);
-
-    // Save changes and return if not button was pressed for 5 seconds
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-
-    wdt_reset();
-  }
-
-  delay(btnDelay);
-  lastActivity = millis();
-
-  // Set Clock
-  while (digitalRead(pinEnterBtn))
-  {
-    if (digitalRead(pinUpBtn) == 0)
-    {
-      adjustTime(60);  // Function of time library. Adds given seconds to time.
-      delay(btnDelay/5);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    if (digitalRead(pinDownBtn) == 0)
-    {
-      adjustTime(-60);  // Function of time library. Adds given seconds to time.
-      delay(btnDelay/5);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    // Update display
-    statusDisplay(-2, -2);
-
-    // Save changes and return if not button was pressed for 5 seconds
-    if (millis() - lastActivity > 5000)
-    {
-      writeParameters();
-      return;
-    }
-  }
-
-  delay(btnDelay);
-  lastActivity = millis();
-  wdt_reset();
-
-  // Set Timer
-  while (digitalRead(pinEnterBtn))
-  {
-    if (digitalRead(pinUpBtn) == 0)
-    {
-      giess.time += 60;
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/5);
-    }
-
-    if (digitalRead(pinDownBtn) == 0)
-    {
-      giess.time -= 60;
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/5);
-    }
-
-    // Update display
-    statusDisplay(-2, -1);
-
-    // Save changes and return if not button was pressed for 5 seconds
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-  }
-
-  delay(btnDelay);
-  lastActivity = millis();
-  wdt_reset();
-
-  // Set ThermoCoeff
-  while (digitalRead(pinEnterBtn))
-  {
-    if (digitalRead(pinUpBtn) == 0)
-    {
-      thermo.IncTempCoeff(0.1);
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/5);
-    }
-
-    if (digitalRead(pinDownBtn) == 0)
-    {
-      thermo.IncTempCoeff(-0.1);
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/5);
-    }
-
-    // Update display
-    statusDisplay(-2, -3);
-
-    // Save changes and return if not button was pressed for 5 seconds
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-  }
-
-  delay(btnDelay);
-  wdt_reset();
-  writeParameters();
-}
-
-void writeParameters()
-{
-  // Write new giessTime to EEPROM
-  int eeAdress = 0;
-  EEPROM.put(eeAdress, giess.time);
-  eeAdress += (sizeof(time_t) + sizeof(int));
-
-  // Write new thermoCoef to EEPROM
-  EEPROM.put(eeAdress, thermo.GetTempCoeff());
-  eeAdress += sizeof(float);
-
-  // Write new volume targets to EEPROM
-  int i;
-  for (i = 0; i < CHANNEL; i++)
-  {
-    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
-    eeAdress += sizeof(int);
-  }
-
-  // Update RTC
-  RTC.set(now());
-
-  // Show normal display
-  statusDisplay(CTRL_IDLE, -1);
-  RTC.alarm(ALARM_2);
-  RTC.alarmInterrupt(ALARM_2, true);
-  wdt_reset();
-}
-
-void btnInterruptSleep(void) // Back from sleep
-{
-  alarmIsrWasCalled = true;
-}
-
-void enterSleep(void)
-{
-  // Set-up pin2 as an interrupt and attach handler
-  detachInterrupt(digitalPinToInterrupt(flow.getPin()));  // detach flow-meter interrupt
-  attachInterrupt(digitalPinToInterrupt(pinEnterBtn), btnInterruptSleep, FALLING);
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_enable();
-
-  // ** MCU goes to sleep
-  sleep_mode();
-  // ** The program will continue from here
-
-  if (alarmIsrWasCalled) {
-    detachInterrupt(0);
-    sleep_disable();
-  }
 }
