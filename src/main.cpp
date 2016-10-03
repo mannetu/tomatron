@@ -108,31 +108,34 @@ void enterSleep(void);
 //-------------------------------------------------------------------
 void setup()
 {
-  /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING *******************
-  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
-  RTC.set(now());
-  giess.time = now() + 3600;
-  int eepromAdress = 0;
-  EEPROM.put(0, giess.time);
-  eepromAdress += sizeof(time_t);
+/*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING *******************
+  // Giesstime
+    setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
+    RTC.set(now());
+    giess.time = now() + 3600;
+    int eepromAdress = 0;
+    EEPROM.put(0, giess.time);
+    eepromAdress += sizeof(time_t);
 
-  EEPROM.put(eepromAdress, 480); // 480 Pulse/L calculated from datasheet
-  eepromAdress += sizeof(int);
+  // Flow Calibration Factor
+      EEPROM.put(eepromAdress, 480); // Datasheet says 480 Pulses/L
+      eepromAdress += sizeof(int);
 
-  float thermoCoeff = 1.5;
-  EEPROM.put(eepromAdress, thermoCoeff);
-  *********************************************************************/
+  // thermoCoeff
+      float thermoCoeff = 1.5;
+      EEPROM.put(eepromAdress, thermoCoeff);
+********************************************************************/
 
-  /* Power management */
+  // Power management
   power_adc_disable();
   power_spi_disable();
   power_timer1_disable();
   power_timer2_disable();
 
-  /* Setup the Watchdog Timer */
+  // Setup the Watchdog Timer
   wdt_enable(WDTO_8S);
 
-  /* Setup LCD display */
+  // Setup LCD display
   display.begin(); // init done
   display.setContrast(50);
   display.setRotation(2);
@@ -140,7 +143,7 @@ void setup()
   display.setTextColor(BLACK);
   delay(1000);
 
-  /* Set time and RTC options */
+  // Set time and RTC options
   while (RTC.get() == 0);
   setTime(RTC.get());   // the function to get the time from the RTC
 
@@ -153,33 +156,33 @@ void setup()
   RTC.alarm(ALARM_2);
   RTC.alarmInterrupt(ALARM_2, true);
 
-  /* Set pin configuration for buttons */
+  // Set pin configuration for buttons
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required due to interrupt function!!
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
   flow.resetFlowMeter();
 
-  /* Read giessTime from EEPROM */
-  int eeAdress = 0;   // EEPROM-Adress
+  // Read giessTime from EEPROM
+  int eeAdress = 0;
   EEPROM.get(eeAdress, giess.time);
-  eeAdress += sizeof(time_t); // Set position to calibration factor
+  eeAdress += sizeof(time_t); // Move write position to calibration factor
 
-  /* Initialize GiessFlag */
+  // Initialize GiessFlag
   giess.flag = CTRL_IDLE;
 
-  /* Read calibration factor from EEPROM */
+  // Read calibration factor from EEPROM
   int cf;
   EEPROM.get(eeAdress, cf);
-  eeAdress += sizeof(int); // Set position to temperature factor (after cf)
+  eeAdress += sizeof(int); // Move write position to temperature factor
   flow.setCalibrationFactor(cf);
 
-  /* Read temperature factor factor from EEPROM */
+  // Read temperature factor factor from EEPROM
   float tf;
   EEPROM.get(eeAdress, tf);
-  eeAdress += sizeof(float); // Set position to volume targets (after tf)
+  eeAdress += sizeof(float); // Move write position to volume targets
   thermo.SetTempCoeff(tf);
 
-  /* Read volume targets from EEPROM */
+  // Read volume targets from EEPROM
   int vol;
   for (byte i = 0; i < (CHANNEL); i++) {
     EEPROM.get(eeAdress, vol);  //
@@ -187,7 +190,7 @@ void setup()
     valve[i].setVolumeTarget(vol);
   }
 
-  /* If Enter is pressed at boot, enter calibration mode */
+  // If Enter is pressed at boot, enter calibration mode
   if (digitalRead(pinEnterBtn) == LOW) {
     display.clearDisplay();
     display.display();
@@ -510,7 +513,7 @@ void calibration()
   }
   delay(2 * btnDelay);
 
-  /* Calculate calibration factor and write to EEPROM */
+  // Calculate calibration factor and write to EEPROM
   cf = flow.getPulseCount() / vol;
   flow.setCalibrationFactor(cf);
   EEPROM.put(eeAdress, cf);
