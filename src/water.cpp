@@ -113,12 +113,12 @@ byte Magnetvalves::dosing(void)
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV < ((this->targetV * this->m_giessFactor) - 1)))
+  if ((dosingFlag == WATER_BSY) && (currV < (this->targetV * this->m_giessFactor)))
   {
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV > ((this->targetV * this->m_giessFactor) - 1)))
+  if ((dosingFlag == WATER_BSY) && (currV > (this->targetV * this->m_giessFactor)))
   {
     digitalWrite(this->pin, LOW);
     dosingFlag = WATER_IDLE;
@@ -137,12 +137,12 @@ byte Magnetvalves::dosing(float vol)
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV < vol-1))
+  if ((dosingFlag == WATER_BSY) && (currV < vol))
   {
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV > vol-1))
+  if ((dosingFlag == WATER_BSY) && (currV > vol))
   {
     digitalWrite(this->pin, LOW);
     dosingFlag = WATER_IDLE;
