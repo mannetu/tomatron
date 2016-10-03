@@ -241,10 +241,22 @@ void loop()
   }
 
   // If giessing, then check progress */
-  if (giess.flag > CTRL_IDLE) giessRoutine();// that is active channel 0, 1, 2, or 3
+  if (giess.flag > CTRL_IDLE) // that is active channel 0, 1, 2, or 3
+  {
+    giessRoutine();
+  }
 
   // On enter btn press, start mode to set time, giessTime and target volumes */
-  if (digitalRead(pinEnterBtn) == 0) setParameters();
+  if (digitalRead(pinEnterBtn) == 0)
+  {
+    RTC.alarmInterrupt(ALARM_2, false);
+    setParameters();
+    if (giess.flag == CTRL_IDLE)
+    {
+      RTC.alarm(ALARM_2);
+      RTC.alarmInterrupt(ALARM_2, true);
+    }
+  }
 
   wdt_reset();
 }
@@ -260,7 +272,6 @@ int checkGiessen()
   if ((hour(giess.time) == hour()) && (minute(giess.time) == minute()))
   {
     flow.resetFlowMeter();
-
     RTC.alarmInterrupt(ALARM_2, false);
     return CTRL_ACT;
   }
@@ -413,7 +424,7 @@ void statusDisplay(int gf, int ch)
         display.print(valve[i].getPlant());
         display.setCursor(26, (8*i+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
-        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
         display.setTextColor(BLACK, WHITE);
       }
       else // Display idle channel
@@ -422,7 +433,7 @@ void statusDisplay(int gf, int ch)
         display.print(valve[i].getPlant());
         display.setCursor(26, (8*i+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
-        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
       }
     }
 
@@ -436,7 +447,7 @@ void statusDisplay(int gf, int ch)
         display.print(valve[i].getPlant());
         display.setCursor(70, (8*(i-4)+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
-        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
         display.setTextColor(BLACK, WHITE);
       }
       else // Display idle channel
@@ -445,7 +456,7 @@ void statusDisplay(int gf, int ch)
         display.print(valve[i].getPlant());
         display.setCursor(70, (8*(i-4)+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
-        display.println(valve[i].readVolumeTarget() * thermo.GetGiessFactor(), 0);
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
       }
     }
     display.display(); // show screen
@@ -468,7 +479,6 @@ void interuptPulse()
 //-------------------------------------------------------------
 void setParameters()
 {
-  RTC.alarmInterrupt(ALARM_2, false);
 
   int channel = 0;
   long lastActivity;
@@ -649,8 +659,6 @@ void writeParameters()
 
   // Show normal display
   statusDisplay(CTRL_IDLE, -1);
-  RTC.alarm(ALARM_2);
-  RTC.alarmInterrupt(ALARM_2, true);
   wdt_reset();
 }
 
