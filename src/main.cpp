@@ -260,7 +260,6 @@ int checkGiessen()
   if ((hour(giess.time) == hour()) && (minute(giess.time) == minute()))
   {
     flow.resetFlowMeter();
-    // valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
 
     RTC.alarmInterrupt(ALARM_2, false);
     return CTRL_ACT;
@@ -281,6 +280,7 @@ void giessRoutine()
   if (valve[giess.flag].dosing() == 0)
   {
     flow.resetFlowMeter();
+    valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
     giess.flag++; delay(100);
   }
 

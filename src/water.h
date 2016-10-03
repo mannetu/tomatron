@@ -39,7 +39,7 @@ class Magnetvalves {
     char plant[9];
   public:
     Magnetvalves(byte, const char *); // Constructor
-    static byte flag;
+    //static byte flag;
     void setVolumeTarget(int);
     void incVolumeTarget(int);
     byte  readVolumeTarget(void);
