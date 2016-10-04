@@ -58,11 +58,13 @@ class Thermocontrol
   int m_numberOfTempReadings;
   float m_tempAddition;
   float m_tempCoeff;
+  int m_lowerAveragingHour;
+  int m_upperAveragingHour;
 
   public:
-  Thermocontrol(float);
-  void AddTempReading(float);
-  int GetTempAverage(void);
+  Thermocontrol(int);
+  void AddTempReading(float, int);
+  float GetTempAverage(void);
   void ResetAverage(void);
   void SetTempCoeff(float);
   void IncTempCoeff(float);

@@ -19,14 +19,11 @@
 #include "water.h"
 
 //---------------------------------------------------------
-// Number of water channels
-#define CHANNEL 6
-
+// System Setup
 //---------------------------------------------------------
-// Display update rate (milliseconds)
-#define DISPLAY_UPDATE 250
 
-//---------------------------------------------------------
+#define CHANNEL 6  // Number of water channels
+
 // Giessflag
 enum giessFlag {
   CTRL_SLEEP = -3,
@@ -43,19 +40,20 @@ struct s_giess {
 
 //---------------------------------------------------------
 // Nokia 5110 Display
-
+//---------------------------------------------------------
 // Software SPI (slower updates, more flexible pin options):
-// pin 13 - Serial clock out (SCLK)
-// pin 12 - Serial data out (DIN)
-// pin 11 - Data/Command select (D/C)
+// pin 12 - Serial clock out (SCLK)
+// pin 11 - Serial data out (DIN)
+// pin 10 - Data/Command select (D/C)
 // GND    - LCD chip select (CS)
-// pin 10 - LCD reset (RST)
+// pin 9 - LCD reset (RST)
 
 Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
+#define DISPLAY_UPDATE 250  // Display update rate (milliseconds)
 
 //---------------------------------------------------------
 // Buttons
-
+//---------------------------------------------------------
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
 const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
 const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
@@ -64,7 +62,7 @@ unsigned int btnDelay =   200; // Debounce delay
 
 //---------------------------------------------------------
 // Objects
-
+//---------------------------------------------------------
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
@@ -80,12 +78,13 @@ Pump pump(4); // ATmega pin 6
 
 // Ratio of dispensed volume at 30 °C to set volume at 20 °C
 // During setup() value of 1.5 will be overwritten with data from EEPROM
-Thermocontrol thermo(1.5);
+Thermocontrol thermo(10);
 
 volatile boolean alarmIsrWasCalled = true;
 
 //---------------------------------------------------------
 // Function prototypes
+//---------------------------------------------------------
 
 int   checkGiessen(void);
 void  giessRoutine(void);
@@ -218,7 +217,7 @@ void loop()
     // Continue after wake-up
     wdt_enable(WDTO_8S); // Enable Watchdog-Timer
     setTime(RTC.get()); // Update MCU time from RTC
-    thermo.AddTempReading(RTC.temperature()/4); // Temperature measurement
+    thermo.AddTempReading((float(RTC.temperature())/float(4)), hour(giess.time)); // Temperature measurement
 
     statusDisplay(CTRL_IDLE, -1);
   }
@@ -335,7 +334,7 @@ void statusDisplay(int gf, int ch)
     display.setTextColor(BLACK, WHITE);
 
     // Print giessFactor
-    display.setCursor(50, 36);
+    display.setCursor(50, 30);
     if (gf == -2 && ch == -3)
     {
       display.setTextColor(WHITE, BLACK);
@@ -348,6 +347,10 @@ void statusDisplay(int gf, int ch)
       display.print("x");
       display.print(thermo.GetGiessFactor(), 1);
     }
+
+    // Print average temperature
+    display.setCursor(50, 40);
+    display.print(thermo.GetTempAverage(), 1);
 
     // Print giess time
     display.setCursor(46, 0);
