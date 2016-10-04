@@ -18,13 +18,13 @@
 #define _WaterH_
 #include "water.h"
 
-/* Number of water channels */
-#define CHANNEL 4
+//---------------------------------------------------------
+// System Setup
+//---------------------------------------------------------
 
-/* Display update rate (every x milliseconds) */
-#define DISPLAY_UPDATE 250
+#define CHANNEL 6  // Number of water channels
 
-/* Giessflag */
+// Giessflag
 enum giessFlag {
   CTRL_SLEEP = -3,
   CTRL_SET = -2,
@@ -38,77 +38,104 @@ struct s_giess {
   time_t time;
 } giess;
 
-/*** Nokia 5110 Display  ******
- Software SPI (slower updates, more flexible pin options):
- pin 13 - Serial clock out (SCLK)
- pin 12 - Serial data out (DIN)
- pin 11 - Data/Command select (D/C)
- GND    - LCD chip select (CS)
- pin 10 - LCD reset (RST)
-*/
+//---------------------------------------------------------
+// Nokia 5110 Display
+//---------------------------------------------------------
+// Software SPI (slower updates, more flexible pin options):
+// pin 12 - Serial clock out (SCLK)
+// pin 11 - Serial data out (DIN)
+// pin 10 - Data/Command select (D/C)
+// GND    - LCD chip select (CS)
+// pin 9 - LCD reset (RST)
+
 Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
+#define DISPLAY_UPDATE 250  // Display update rate (milliseconds)
 
-
-/* Buttons  */
+//---------------------------------------------------------
+// Buttons
+//---------------------------------------------------------
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
 const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
 const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
 
 unsigned int btnDelay =   200; // Debounce delay
 
-/******* Objects *******************/
+//---------------------------------------------------------
+// Objects
+//---------------------------------------------------------
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
-  Magnetvalves(5, "Tom links"),   // ATmega pin 11
-  Magnetvalves(6, "Tom mitte"),   // ATmega pin 12
-  Magnetvalves(7, "Tom rechts"),  // ATmega pin 13
-  Magnetvalves(8, "Paprika")      // ATmega pin 14
+  Magnetvalves(5, "To1  "),  // ATmega pin 11
+  Magnetvalves(6, "To2  "),  // ATmega pin 12
+  Magnetvalves(7, "To3  "),  // ATmega pin 13
+  Magnetvalves(8, "Pa1  "),  // ATmega pin 14
+  Magnetvalves(0, "Pa2  "),  // ATmega pin __
+  Magnetvalves(1, "Gu1  ")   // ATmega pin __
 };
 
-Pump pump(4);// = Pump(4);   // ATmega pin 6
+Pump pump(4); // ATmega pin 6
+
+// Ratio of dispensed volume at 30 °C to set volume at 20 °C
+// During setup() value of 1.5 will be overwritten with data from EEPROM
+Thermocontrol thermo(10);
 
 volatile boolean alarmIsrWasCalled = true;
 
-/******* Function prototypes *******/
-int checkGiessen(void);
-void giessRoutine(void);
-void statusDisplay(int, int);
+//---------------------------------------------------------
+// Function prototypes
+//---------------------------------------------------------
 
-void interruptPulse(void);
+int   checkGiessen(void);
+void  giessRoutine(void);
+void  statusDisplay(int, int);
 
-void calibration();
-void calibrationDoseDisplay(int);
-void calibrationDisplay(double);
+void  interruptPulse(void);
 
-void setParameters(void);
-void writeParameters();
+void  setParameters(void);
+void  writeParameters();
 
-void btnInterruptSleep(void);
-void enterSleep(void);
+void  btnInterruptSleep(void);
+void  enterSleep(void);
+
+void  calibration();
+void  calibrationDoseDisplay(int);
+void  calibrationDisplay(double);
 
 
-/****** Functions ******************/
-void setup() {
+//-------------------------------------------------------------------
+// Setup
+//-------------------------------------------------------------------
+void setup()
+{
+/*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING *******************
+  // Giesstime
+    setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
+    RTC.set(now());
+    giess.time = now() + 3600;
+    int eepromAdress = 0;
+    EEPROM.put(0, giess.time);
+    eepromAdress += sizeof(time_t);
 
-  /*** ONLY FOR INITIAL EEPROM AND RTC PROGRAMMING ********************
-  setTime(18, 30, 00, 01, 05, 16); // hour, min, sec, day, month, year
-  RTC.set(now());
-  giess.time = now() + 3600;
-  EEPROM.put(0, giess.time);
-  EEPROM.put(sizeof(time_t), 480); // 480 Pulse/L calculated from datasheet
-  *********************************************************************/
+  // Flow Calibration Factor
+      EEPROM.put(eepromAdress, 480); // Datasheet says 480 Pulses/L
+      eepromAdress += sizeof(int);
 
-  /* Power management */
+  // thermoCoeff
+      float thermoCoeff = 1.5;
+      EEPROM.put(eepromAdress, thermoCoeff);
+********************************************************************/
+
+  // Power management
   power_adc_disable();
   power_spi_disable();
   power_timer1_disable();
   power_timer2_disable();
 
-  /* Setup the Watchdog Timer */
+  // Setup the Watchdog Timer
   wdt_enable(WDTO_8S);
 
-  /* Setup LCD display */
+  // Setup LCD display
   display.begin(); // init done
   display.setContrast(50);
   display.setRotation(2);
@@ -116,12 +143,12 @@ void setup() {
   display.setTextColor(BLACK);
   delay(1000);
 
-  /* Set time and RTC options */
+  // Set time and RTC options
   while (RTC.get() == 0);
   setTime(RTC.get());   // the function to get the time from the RTC
 
   /* Set RTC alarm to wake-up microcontroller every minute
-   * Alarm pin of RTC is attached to Pin 2 (EnterButton)  */
+  * Alarm pin of RTC is attached to Pin 2 (EnterButton)  */
   RTC.squareWave(SQWAVE_NONE);
   RTC.alarm(ALARM_1);
   RTC.alarmInterrupt(ALARM_1, false);
@@ -129,27 +156,33 @@ void setup() {
   RTC.alarm(ALARM_2);
   RTC.alarmInterrupt(ALARM_2, true);
 
-  /* Set pin configuration for buttons */
+  // Set pin configuration for buttons
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required due to interrupt function!!
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
   flow.resetFlowMeter();
 
-  /* Read giessTime from EEPROM */
-  int eeAdress = 0;   // EEPROM-Adress
+  // Read giessTime from EEPROM
+  int eeAdress = 0;
   EEPROM.get(eeAdress, giess.time);
-  eeAdress += sizeof(time_t); // Set position to calibration factor
+  eeAdress += sizeof(time_t); // Move write position to calibration factor
 
-  /* Initialize GiessFlag */
+  // Initialize GiessFlag
   giess.flag = CTRL_IDLE;
 
-  /* Read calibration factor from EEPROM */
+  // Read calibration factor from EEPROM
   int cf;
   EEPROM.get(eeAdress, cf);
-  eeAdress += sizeof(int); // Set position to volume targets (after cf)
   flow.setCalibrationFactor(cf);
+  eeAdress += sizeof(int); // Move write position to temperature factor
 
-  /* Read volume targets from EEPROM */
+  // Read temperature factor factor from EEPROM
+  float tf;
+  EEPROM.get(eeAdress, tf);
+  thermo.SetTempCoeff(tf);
+  eeAdress += sizeof(float); // Move write position to volume targets
+
+  // Read volume targets from EEPROM
   int vol;
   for (byte i = 0; i < (CHANNEL); i++) {
     EEPROM.get(eeAdress, vol);  //
@@ -157,62 +190,86 @@ void setup() {
     valve[i].setVolumeTarget(vol);
   }
 
-
-  /* If Enter is pressed at boot, enter calibration mode */
+  // If Enter is pressed at boot, enter calibration mode
   if (digitalRead(pinEnterBtn) == LOW) {
     display.clearDisplay();
     display.display();
     delay(2000);
     calibration();
   }
-
   statusDisplay(-1, -1);
-  }
+}
 
-void loop() {
 
-  /* Enter sleep mode */
-  if(giess.flag == CTRL_IDLE) {
+//--------------------------------------------------------------
+// Function name: loop()
+//--------------------------------------------------------------
+void loop()
+{
+  // If nothing happens
+  if(giess.flag == CTRL_IDLE)
+  {
+    // MCU enter sleep
     statusDisplay(CTRL_SLEEP, -1);
     wdt_disable();
     enterSleep();
-    wdt_enable(WDTO_8S);
-    setTime(RTC.get());
+
+    // Continue after wake-up
+    wdt_enable(WDTO_8S); // Enable Watchdog-Timer
+    setTime(RTC.get()); // Update MCU time from RTC
+    thermo.AddTempReading((float(RTC.temperature())/float(4)), hour(giess.time)); // Temperature measurement
+
     statusDisplay(CTRL_IDLE, -1);
   }
 
-  if (alarmIsrWasCalled) {
+  // Reset RTC alarm
+  if (alarmIsrWasCalled)
+  {
     RTC.alarm(ALARM_2);
     alarmIsrWasCalled = false;
   }
 
-  /* Check if it is time for giessing */
-  if (giess.flag == CTRL_IDLE) {
-    giess.flag = checkGiessen();
-  }
+  // Check if it is time for giessing */
+  if (giess.flag == CTRL_IDLE) giess.flag = checkGiessen();
 
-  /* Update Display every DISPLAY_UPDATE ms*/
-  if ((millis() - giess.lastCall > DISPLAY_UPDATE)) {
+  // Update Display every DISPLAY_UPDATE ms*/
+  if ((millis() - giess.lastCall > DISPLAY_UPDATE))
+  {
     statusDisplay(giess.flag, -1);
     giess.lastCall = millis();
   }
 
-  /* If giessing, then check progress */
-  if (giess.flag > CTRL_IDLE) {   // that is active channel 0, 1, 2, or 3
+  // If giessing, then check progress */
+  if (giess.flag > CTRL_IDLE) // that is active channel 0, 1, 2, or 3
+  {
     giessRoutine();
   }
 
-  /* On enter btn press, start mode to set time, giessTime and target volumes */
-  if (digitalRead(pinEnterBtn) == 0) {
+  // On enter btn press, start mode to set time, giessTime and target volumes */
+  if (digitalRead(pinEnterBtn) == 0)
+  {
+    RTC.alarmInterrupt(ALARM_2, false);
     setParameters();
+    if (giess.flag == CTRL_IDLE)
+    {
+      RTC.alarm(ALARM_2);
+      RTC.alarmInterrupt(ALARM_2, true);
+    }
   }
 
   wdt_reset();
 }
 
-int checkGiessen() {
-  /* Check if time for giessen */
-  if ((hour(giess.time) == hour()) && (minute(giess.time) == minute())) {
+
+//--------------------------------------------------------------
+// Function name: checkGiessen
+//
+// checks if it is time for giessen
+//--------------------------------------------------------------
+int checkGiessen()
+{
+  if ((hour(giess.time) == hour()) && (minute(giess.time) == minute()))
+  {
     flow.resetFlowMeter();
     RTC.alarmInterrupt(ALARM_2, false);
     return CTRL_ACT;
@@ -220,119 +277,189 @@ int checkGiessen() {
   return CTRL_IDLE;
 }
 
-void giessRoutine() {
-  /* Giessen routines */
+
+//--------------------------------------------------------------
+// Function name: giessRoutine
+//--------------------------------------------------------------
+void giessRoutine()
+{
   if (pump.start()) delay(2000); // wait for 2s if pump had to be started
 
   valve[giess.flag].setCurrentVolume(flow.getVolume());
 
-  if (valve[giess.flag].dosing() == 0) {
+  if (valve[giess.flag].dosing() == 0)
+  {
     flow.resetFlowMeter();
+    valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
     giess.flag++; delay(100);
   }
 
-  if (giess.flag > CHANNEL-1) {
+  if (giess.flag > CHANNEL-1)
+  {
     pump.stop();
+    thermo.ResetAverage();
     giess.flag = CTRL_IDLE;
     RTC.alarm(ALARM_2);
     RTC.alarmInterrupt(ALARM_2, true);
   }
 }
 
-void statusDisplay(int gf, int ch) {
 
+//--------------------------------------------------------------
+// Status Display
+//--------------------------------------------------------------
+void statusDisplay(int gf, int ch)
+{
   static byte blink_flag = 1;
   display.clearDisplay();
   display.setCursor(0, 0);
 
-  /* Display if nothing is active or parameter set mode */
-  if (gf < 0) {   // -1 or -2
+  //---------------------------------------------------
+  // Display if nothing is active or parameter set mode
+
+  if (gf < 0)    //  -1 or -2
+  {
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
 
-    /* Print current time */
+    display.drawFastHLine(0, 9, 85, BLACK);
+    display.drawFastHLine(41, 32, 43, BLACK);
+    display.drawFastVLine(40, 0, 48, BLACK);
+
+    // Print current time
+    if(hour() < 10) display.print(' ');
     display.print(hour());
     display.print(":");
     if(minute() < 10) display.print('0');
     display.print(minute());
     display.setTextColor(BLACK, WHITE);
 
-    /* Print giess time */
-    display.setCursor(40, 0);
+    // Print giessFactor
+    display.setCursor(50, 30);
+    if (gf == -2 && ch == -3)
+    {
+      display.setTextColor(WHITE, BLACK);
+      display.print("f");
+      display.print(thermo.GetTempCoeff(), 1);
+      display.setTextColor(BLACK, WHITE);
+    }
+    else
+    {
+      display.print("x");
+      display.print(thermo.GetGiessFactor(), 1);
+    }
+
+    // Print average temperature
+    display.setCursor(50, 40);
+    display.print(thermo.GetTempAverage(), 1);
+
+    // Print giess time
+    display.setCursor(46, 0);
     if (gf == -3) {
-      display.print("S>");
-      } else {
-        display.print(">>");
-      }
+      display.print("G");
+    } else {
+      display.print(">");
+    }
     if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
-    display.print(hour(giess.time)); display.print(":");
+    if(hour(giess.time) < 10) display.print(' ');
+    display.print(hour(giess.time));
+    display.print(":");
     if(minute(giess.time) < 10) display.print('0');
     display.print(minute(giess.time));
     display.setTextColor(BLACK, WHITE);
 
-    /* Print channel information */
-    for (int i = 0; i < CHANNEL; i++) {
-      display.setCursor(0, (8*i+15));
-      display.print(valve[i].getPlant());
-      display.setCursor(50, (8*i+15));
+    // Print channel left column
+    for (int i = 0; i < 4; i++)
+    {
+      display.setCursor(0, (8*i + 13));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
-      if (valve[i].readVolumeTarget()<100) display.print(" ");
+      display.print(valve[i].getPlant());
+      display.setCursor(26, (8*i + 13));
       if (valve[i].readVolumeTarget()<10) display.print(" ");
-      display.print(valve[i].readVolumeTarget());
-      display.println(" L");
+      display.println(valve[i].readVolumeTarget());
+      display.setTextColor(BLACK, WHITE);
+    }
+
+    // Print channel right column
+    for (int i = 4; i < CHANNEL; i++)
+    {
+      display.setCursor(44, (8*(i-4) + 13));
+      if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
+      display.print(valve[i].getPlant());
+      display.setCursor(70, (8 *(i-4) + 13));
+      if (valve[i].readVolumeTarget()<10) display.print(" ");
+      display.println(valve[i].readVolumeTarget());
       display.setTextColor(BLACK, WHITE);
     }
     display.display(); // show screen
     return;
   }
 
-  /* Display during active giessing */
-  if (gf > -1) {
+  //----------------------------------------------------
+  // Display during active giessing
 
+  if (gf > -1)
+  {
+    // Divide display in boxes
+    display.drawFastHLine(0, 9, 85, BLACK);
+    display.drawFastHLine(41, 32, 43, BLACK);
+    display.drawFastVLine(40, 10, 38, BLACK);
+
+    // Blinking Title "Wasser" (in top box)
     display.setTextColor(WHITE, BLACK);
-
-    /* Blink Wasser */
+    display.setCursor(17, 0);
     if (blink_flag++ < 4) display.print(" WASSER ");
     blink_flag %= 6;
+
+    // Print current volume (in box bottom right)
     display.setTextColor(BLACK, WHITE);
-
-    /* Print pulse count */
-    //display.println(flow.getPulseCount());
-
-    display.setCursor(50, 0);
-    if (valve[gf].readCurrentVolume() < 100) display.print(" ");
+    display.setCursor(45, 36);
     if (valve[gf].readCurrentVolume() < 10) display.print(" ");
-    display.print(valve[gf].readCurrentVolume());
+    display.print(valve[gf].readCurrentVolume(), 1);
     display.print(" L");
 
-
-
-    for (int i = 0; i < CHANNEL; i++) {
-    /* Display active channel */
-      if (i == gf)
+    // Left column
+    for (int i = 0; i < 4; i++)
+    {
+      if (i == gf) // Display active channel
       {
         display.setTextColor(WHITE, BLACK);
-        display.setCursor(0, (8*i+15));
+        display.setCursor(0, (8*i+13));
         display.print(valve[i].getPlant());
-        display.print("   ");
-        display.setCursor(50, (8*i+15));
-        if (valve[i].readVolumeTarget()<100) display.print(" ");
-        if (valve[i].readVolumeTarget()<10) display.print(" ");
-        display.print(valve[i].readVolumeTarget());
-        display.println(" L");
+        display.setCursor(26, (8*i+13));
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
         display.setTextColor(BLACK, WHITE);
-
       }
-      else
-      /* Display idle channel */
+      else // Display idle channel
       {
-        display.setCursor(0, (8*i+15));
+        display.setCursor(0, (8*i+13));
         display.print(valve[i].getPlant());
-        display.setCursor(50, (8*i+15));
-        if (valve[i].readVolumeTarget()<100) display.print(" ");
-        if (valve[i].readVolumeTarget()<10) display.print(" ");
-        display.print(valve[i].readVolumeTarget());
-        display.println(" L");
+        display.setCursor(26, (8*i+13));
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
+      }
+    }
 
+    // Right column
+    for (int i = 4; i < CHANNEL; i++)
+    {
+      if (i == gf) // Display active channel
+      {
+        display.setTextColor(WHITE, BLACK);
+        display.setCursor(44, (8*(i-4)+13));
+        display.print(valve[i].getPlant());
+        display.setCursor(70, (8*(i-4)+13));
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
+        display.setTextColor(BLACK, WHITE);
+      }
+      else // Display idle channel
+      {
+        display.setCursor(44, (8*(i-4)+13));
+        display.print(valve[i].getPlant());
+        display.setCursor(70, (8*(i-4)+13));
+        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
+        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
       }
     }
     display.display(); // show screen
@@ -340,18 +467,254 @@ void statusDisplay(int gf, int ch) {
   }
 }
 
-void interuptPulse() {
+
+//--------------------------------------------------------------
+// Function name: interuptPulse()
+//--------------------------------------------------------------
+void interuptPulse()
+{
   flow.pulse();
 }
 
-void calibration() {
+
+//-------------------------------------------------------------
+// Parameter Set Routine
+//-------------------------------------------------------------
+void setParameters()
+{
+
+  int channel = 0;
+  long lastActivity;
+
+  delay(2 *  btnDelay);
+  lastActivity = millis();
+
+  // Set target volumes
+  while (channel < CHANNEL)
+  {
+    if (digitalRead(pinEnterBtn) == 0) // Choose next channel
+    {
+      channel++;
+      delay(btnDelay);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    if (digitalRead(pinUpBtn) == 0) // Increase volume
+    {
+      valve[channel].incVolumeTarget(1);
+      statusDisplay(-2, channel);
+      delay(btnDelay);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    if (digitalRead(pinDownBtn) == 0) // Decrease volume
+    {
+      valve[channel].incVolumeTarget(-1);
+      statusDisplay(-2, channel);
+      delay(btnDelay);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    statusDisplay(-2, channel);  // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000)
+    {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+
+  // Set Timer
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      giess.time += 60;
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      giess.time -= 60;
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    statusDisplay(-2, -1);  // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+  wdt_reset();
+
+  // Set ThermoCoeff
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      thermo.IncTempCoeff(0.1);
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      thermo.IncTempCoeff(-0.1);
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    statusDisplay(-2, -3);   // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000) {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+  wdt_reset();
+
+  // Set Daytime
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      adjustTime(60);  // Function of time library adds seconds
+      delay(btnDelay/5);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      adjustTime(-60);  // Function of time library adds seconds
+      delay(btnDelay/5);
+      lastActivity = millis();
+      wdt_reset();
+    }
+
+    statusDisplay(-2, -2); // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000)
+    {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  // If Enter button was pressed during daytime setting
+  delay(2*btnDelay);
+  wdt_reset();
+  writeParameters();
+}
+
+//---------------------------------------------------------------------
+// void writeParameters(void)
+// Writes parameters from setParameters() function to EEPROM or RTC
+//---------------------------------------------------------------------
+void writeParameters()
+{
+  // Write new giessTime to EEPROM
+  int eeAdress = 0;
+  EEPROM.put(eeAdress, giess.time);
+  eeAdress += (sizeof(time_t) + sizeof(int));
+
+  // Write new TempCoeff to EEPROM
+  EEPROM.put(eeAdress, thermo.GetTempCoeff());
+  eeAdress += sizeof(float);
+
+  // Write new volume targets to EEPROM
+  int i;
+  for (i = 0; i < CHANNEL; i++)
+  {
+    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
+    eeAdress += sizeof(int);
+  }
+
+  // Write new daytime to RTC
+  RTC.set(now());
+
+  // Show normal display
+  statusDisplay(CTRL_IDLE, -1);
+  wdt_reset();
+}
+
+//---------------------------------------------------------------------
+// void btnInterruptSleep(void)
+// Interrupt handler for RTC alarm
+//---------------------------------------------------------------------
+void btnInterruptSleep(void) // Back from sleep
+{
+  alarmIsrWasCalled = true;
+}
+
+//---------------------------------------------------------------------
+// void enterSleep(void)
+//
+//---------------------------------------------------------------------
+void enterSleep(void)
+{
+  // Detach flow-meter pin from interrupt
+  detachInterrupt(digitalPinToInterrupt(flow.getPin()));
+
+  // Set pin2 (connected to Enter Button and RTC alarm) as interrupt
+  // and attach handler function btnInterruptSleep()
+  attachInterrupt(digitalPinToInterrupt(pinEnterBtn), btnInterruptSleep, FALLING);
+
+  // Set sleep properties
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+
+  // Let MCU go to sleep
+  sleep_mode();
+
+  // ** After interrupt The program will continue from here
+  if (alarmIsrWasCalled)
+  {
+    detachInterrupt(0);
+    sleep_disable();
+  }
+}
+
+
+//--------------------------------------------------------------
+// Function name: calibration()
+//--------------------------------------------------------------
+void calibration()
+{
   int cf; // calibration factor
   double vol = 10.0; // Volume dispensed for calibration
   int eeAdress = sizeof(time_t);
 
   wdt_disable();
 
-  /* Show instructions on display */
+  // Show instructions on display
   display.clearDisplay();
   display.setCursor(0,0);
   display.println("Kalibierung");
@@ -362,25 +725,29 @@ void calibration() {
   display.display();
   flow.resetFlowMeter();
 
-  while (digitalRead(pinEnterBtn)) { };
+  while (digitalRead(pinEnterBtn)) {};
 
-  /* Dispense volume vol */
+  // Dispense volume vol
   pump.start();
-  while (valve[0].dosing(int (vol)) > 0) {
+  while (valve[0].dosing(int (vol)) > 0)
+  {
     valve[0].setCurrentVolume(flow.getVolume());
     calibrationDoseDisplay(valve[0].readCurrentVolume());
   }
   pump.stop();
-  /* Adjust exact volume with Up/Down-Buttons and press Enter */
+  // Adjust exact volume with Up/Down-Buttons and press Enter
   calibrationDisplay(double(valve[0].readCurrentVolume()));
   vol = double(valve[0].readCurrentVolume());
-  while (digitalRead(pinEnterBtn)) {
-    if (digitalRead(pinUpBtn) == 0) {
+  while (digitalRead(pinEnterBtn))
+  {
+    if (digitalRead(pinUpBtn) == 0)
+    {
       vol += 0.1;
       calibrationDisplay(vol);
       delay(btnDelay);
     }
-    if (digitalRead(pinDownBtn) == 0) {
+    if (digitalRead(pinDownBtn) == 0)
+    {
       vol -= 0.1;
       calibrationDisplay(vol);
       delay(btnDelay);
@@ -388,7 +755,7 @@ void calibration() {
   }
   delay(2 * btnDelay);
 
-  /* Calculate calibration factor and write to EEPROM */
+  // Calculate calibration factor and write to EEPROM
   cf = flow.getPulseCount() / vol;
   flow.setCalibrationFactor(cf);
   EEPROM.put(eeAdress, cf);
@@ -396,7 +763,12 @@ void calibration() {
   wdt_enable(WDTO_8S);
 }
 
-void calibrationDoseDisplay(int vol) {
+
+//--------------------------------------------------------------
+// Function name: calibrationDoseDisplay()
+//--------------------------------------------------------------
+void calibrationDoseDisplay(int vol)
+{
   display.clearDisplay();
   display.setCursor(0,0);
   display.println("Dosierung");
@@ -407,7 +779,8 @@ void calibrationDoseDisplay(int vol) {
   display.display();
 }
 
-void calibrationDisplay(double vol) {
+void calibrationDisplay(double vol)
+{
   display.clearDisplay();
   display.setCursor(0,0);
   display.println("Volumen ein-");
@@ -416,159 +789,4 @@ void calibrationDisplay(double vol) {
   display.println();
   display.print(vol, 1); display.println(" kg");
   display.display();
-}
-
-void setParameters() {
-
-  RTC.alarmInterrupt(ALARM_2, false);
-
-  int channel = 0;
-  long lastActivity;
-
-  delay(2 *  btnDelay);
-  lastActivity = millis();
-
-  /* Set target volumes */
-  while (channel < CHANNEL) {
-    /* Choose channel */
-    if (digitalRead(pinEnterBtn) == 0) {
-      channel++;
-      delay(btnDelay);
-      lastActivity = millis();
-      wdt_reset();
-    }
-    /* Adjust volume */
-    if (digitalRead(pinUpBtn) == 0) {
-      valve[channel].incVolumeTarget(1);
-      statusDisplay(-2, channel);
-      delay(btnDelay);
-      lastActivity = millis();
-      wdt_reset();
-    }
-    if (digitalRead(pinDownBtn) == 0) {
-      valve[channel].incVolumeTarget(-1);
-      statusDisplay(-2, channel);
-      delay(btnDelay);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    statusDisplay(-2, channel);
-
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-
-    wdt_reset();
-  }
-
-  delay(btnDelay);
-  lastActivity = millis();
-
-  /* Set Clock */
-  while (digitalRead(pinEnterBtn)) {
-
-    if (digitalRead(pinUpBtn) == 0) {
-      adjustTime(60);  // Function of time library. Adds given seconds to time.
-      delay(btnDelay/4);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    if (digitalRead(pinDownBtn) == 0) {
-      adjustTime(-60);  // Function of time library. Adds given seconds to time.
-      delay(btnDelay/4);
-      lastActivity = millis();
-      wdt_reset();
-    }
-
-    statusDisplay(-2, -2);
-
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-  }
-
-  delay(btnDelay);
-  lastActivity = millis();
-  wdt_reset();
-
-  /* Set Timer */
-  while (digitalRead(pinEnterBtn)) {
-
-    if (digitalRead(pinUpBtn) == 0) {
-      giess.time += 60;
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/2);
-    }
-
-    if (digitalRead(pinDownBtn) == 0) {
-      giess.time -= 60;
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/2);
-    }
-
-    statusDisplay(-2, -1);
-
-    if (millis() - lastActivity > 5000) {
-      writeParameters();
-      return;
-    }
-  }
-
-  delay(btnDelay);
-  wdt_reset();
-  writeParameters();
-
-}
-
-void writeParameters() {
-
-  /* Write new giessTime to EEPROM */
-  int eeAdress = 0;
-  EEPROM.put(eeAdress, giess.time);
-
-  /* Write new volume targets to EEPROM */
-  eeAdress += (sizeof(time_t) + sizeof(int));
-  int i;
-  for (i = 0; i < CHANNEL; i++) {
-    EEPROM.put(eeAdress, valve[i].readVolumeTarget());
-    eeAdress += sizeof(int);
-  }
-
-  /* Update RTC */
-  RTC.set(now());
-
-  /* Show normal display */
-  statusDisplay(CTRL_IDLE, -1);
-  RTC.alarm(ALARM_2);
-  RTC.alarmInterrupt(ALARM_2, true);
-  wdt_reset();
-
-}
-
-void btnInterruptSleep(void) {
-  /* This will bring us back from sleep. */
-    alarmIsrWasCalled = true;
-}
-
-void enterSleep(void) {
-  /* Set-up pin2 as an interrupt and attach handler. */
-  detachInterrupt(digitalPinToInterrupt(flow.getPin()));  // detach flow-meter interrupt
-  attachInterrupt(digitalPinToInterrupt(pinEnterBtn), btnInterruptSleep, FALLING);
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_enable();
-
-  sleep_mode();
-  /* The program will continue from here. */
-
-  if (alarmIsrWasCalled) {
-    detachInterrupt(0);
-    sleep_disable();
-  }
-
 }
