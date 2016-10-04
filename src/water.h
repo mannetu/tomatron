@@ -59,15 +59,15 @@ class Thermocontrol
   float m_tempAddition;
   float m_tempCoeff;
   int m_lowerAveragingHour;
-  int m_upperAveragingHour;
 
   public:
   Thermocontrol(int);
-  void AddTempReading(float, int);
+  void AddTempReading(float);
   float GetTempAverage(void);
   void ResetAverage(void);
   void SetTempCoeff(float);
   void IncTempCoeff(float);
   float GetTempCoeff(void);
   float GetGiessFactor(void);
+  int GetLowerAveragingHour(void);
 };

@@ -76,9 +76,7 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
 
 Pump pump(4); // ATmega pin 6
 
-// Ratio of dispensed volume at 30 °C to set volume at 20 °C
-// During setup() value of 1.5 will be overwritten with data from EEPROM
-Thermocontrol thermo(10);
+Thermocontrol thermo(1); // Daytime hour to start temperature averaging
 
 volatile boolean alarmIsrWasCalled = true;
 
@@ -217,8 +215,10 @@ void loop()
     // Continue after wake-up
     wdt_enable(WDTO_8S); // Enable Watchdog-Timer
     setTime(RTC.get()); // Update MCU time from RTC
-    thermo.AddTempReading((float(RTC.temperature())/float(4)), hour(giess.time)); // Temperature measurement
-
+    if (hour() > (thermo.GetLowerAveragingHour()-1) && hour() < hour(giess.time))
+    {
+      thermo.AddTempReading(RTC.temperature()/float(4.0)); // Temperature measurement
+    }
     statusDisplay(CTRL_IDLE, -1);
   }
 
@@ -230,7 +230,10 @@ void loop()
   }
 
   // Check if it is time for giessing */
-  if (giess.flag == CTRL_IDLE) giess.flag = checkGiessen();
+  if (giess.flag == CTRL_IDLE)
+  {
+    giess.flag = checkGiessen();
+  }
 
   // Update Display every DISPLAY_UPDATE ms*/
   if ((millis() - giess.lastCall > DISPLAY_UPDATE))
@@ -334,7 +337,7 @@ void statusDisplay(int gf, int ch)
     display.setTextColor(BLACK, WHITE);
 
     // Print giessFactor
-    display.setCursor(50, 30);
+    display.setCursor(50, 34);
     if (gf == -2 && ch == -3)
     {
       display.setTextColor(WHITE, BLACK);
@@ -349,8 +352,9 @@ void statusDisplay(int gf, int ch)
     }
 
     // Print average temperature
-    display.setCursor(50, 40);
+    display.setCursor(47, 41);
     display.print(thermo.GetTempAverage(), 1);
+    display.print("C");
 
     // Print giess time
     display.setCursor(46, 0);

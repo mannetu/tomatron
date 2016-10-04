@@ -178,13 +178,10 @@ Thermocontrol::Thermocontrol(int lowerAveragingHour)
   m_lowerAveragingHour = lowerAveragingHour;
 };
 
-void Thermocontrol::AddTempReading(float tempReading, int upperAveragingHour)
+void Thermocontrol::AddTempReading(float tempReading)
 {
-  if (hour() > m_lowerAveragingHour - 1 && hour() < m_upperAveragingHour + 1)
-  {
-    m_tempAddition += tempReading;
-    m_numberOfTempReadings++;
-  }
+  m_tempAddition += tempReading;
+  m_numberOfTempReadings++;
 }
 
 float Thermocontrol::GetTempAverage()
@@ -227,4 +224,9 @@ void Thermocontrol::IncTempCoeff(float inc)
 float Thermocontrol::GetTempCoeff(void)
 {
   return m_tempCoeff;
+}
+
+int Thermocontrol::GetLowerAveragingHour(void)
+{
+  return m_lowerAveragingHour;
 }
