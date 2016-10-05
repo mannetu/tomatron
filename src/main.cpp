@@ -76,7 +76,7 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
 
 Pump pump(4); // ATmega pin 6
 
-Thermocontrol thermo(1); // Daytime hour to start temperature averaging
+Thermocontrol thermo(8); // Daytime hour to start temperature averaging
 
 volatile boolean alarmIsrWasCalled = true;
 
@@ -215,7 +215,9 @@ void loop()
     // Continue after wake-up
     wdt_enable(WDTO_8S); // Enable Watchdog-Timer
     setTime(RTC.get()); // Update MCU time from RTC
-    if (hour() > (thermo.GetLowerAveragingHour()-1) && hour() < hour(giess.time))
+    if (hour() > (thermo.GetLowerAveragingHour()-1) &&
+        (hour() < hour(giess.time) || (hour() == hour(giess.time) &&
+          minute() < minute(giess.time))))
     {
       thermo.AddTempReading(RTC.temperature()/float(4.0)); // Temperature measurement
     }
@@ -245,6 +247,7 @@ void loop()
   // If giessing, then check progress */
   if (giess.flag > CTRL_IDLE) // that is active channel 0, 1, 2, or 3
   {
+    valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
     giessRoutine();
   }
 
@@ -293,7 +296,6 @@ void giessRoutine()
   if (valve[giess.flag].dosing() == 0)
   {
     flow.resetFlowMeter();
-    valve[giess.flag].setGiessFactor(thermo.GetGiessFactor());
     giess.flag++; delay(100);
   }
 
