@@ -13,114 +13,115 @@ void interuptPulse();
 
 /******* Flowmeter Member Functions *******/
 
-Flowmeter::Flowmeter(byte p) // Constructor
+Flowmeter::Flowmeter(byte pin) // Constructor
 {
-    pin = p;
-    pinMode(pin, INPUT);
+    m_pin = pin;
+    pinMode(m_pin, INPUT);
 }
 
-void Flowmeter::setCalibrationFactor(int cf)
+void Flowmeter::setCalibrationFactor(int calibrationFactor)
 {
-  calibrationFactor = cf;
+  m_calibrationFactor = calibrationFactor;
 }
 
 long Flowmeter::getPulseCount()
 {
-  return pulseCount;
+  return m_pulseCount;
 }
 
 void Flowmeter::resetFlowMeter()
 {
   attachInterrupt(1, interuptPulse, RISING);
-  pulseCount = 0;
+  m_pulseCount = 0;
   dosingFlag = WATER_IDLE;
 }
 
 float Flowmeter::getVolume()
 {
-  float vol = (float)pulseCount / (float)calibrationFactor;
-  return vol;
+  return ((float)m_pulseCount / (float)m_calibrationFactor);
 }
 
 void Flowmeter::pulse(void)
 {
-  pulseCount++;
+  m_pulseCount++;
 }
 
-byte Flowmeter::getPin()
+int Flowmeter::getPin()
 {
-  return pin;
+  return m_pin;
 }
 
 /******* Pump Member Functions *******/
 
-Pump::Pump(byte p)
+Pump::Pump(byte pin)
 {
-  pin = p;
-  pinMode(pin, OUTPUT);
+  m_pin = pin;
+  pinMode(m_pin, OUTPUT);
 }
 
-byte Pump::start(void)
+int Pump::start(void)
 {
-  if (digitalRead(pin)) return 0;
-  digitalWrite(pin, HIGH);
+  if (digitalRead(m_pin))
+  {
+    return 0;
+  }
+  digitalWrite(m_pin, HIGH);
   return 1;
 }
 
 void Pump::stop(void)
 {
- digitalWrite(pin, LOW);
+ digitalWrite(m_pin, LOW);
 }
 
 /******* Magnetvalves Member Functions *******/
 
-Magnetvalves::Magnetvalves(byte p, const char *name)
+Magnetvalves::Magnetvalves(byte pin, const char *plantName)
 {
-  pin = p;
-  /* Set pin configuration for valves */
-  pinMode(pin, OUTPUT);
-  strncpy(plant, name, 8);
+  m_pin = pin;
+  pinMode(m_pin, OUTPUT); // Set pin configuration for valves
+  strncpy(m_plantName, plantName, 8);
 }
 
-void Magnetvalves::setVolumeTarget(int v)
+void Magnetvalves::setVolumeTarget(int targetV)
 {
-  targetV = v;
+  m_targetV = targetV;
 }
 
 void Magnetvalves::incVolumeTarget(int i)
 {
-  targetV += i;
-  if (targetV == 100) targetV = 0;
-  if (targetV == 255) targetV = 99;
+  m_targetV += i;
+  if (m_targetV == 100) m_targetV = 0;
+  if (m_targetV == 255) m_targetV = 99;
 }
 
-byte Magnetvalves::readVolumeTarget()
+  int Magnetvalves::readVolumeTarget()
 {
-  return targetV;
+  return m_targetV;
 }
 
 char * Magnetvalves::getPlant()
 {
-  return plant;
+  return m_plantName;
 }
 
-byte Magnetvalves::dosing(void)
+int Magnetvalves::dosing(void)
 {
   if (dosingFlag == WATER_IDLE)
   {
-    digitalWrite(this->pin, HIGH);
+    digitalWrite(m_pin, HIGH);
     dosingFlag = WATER_BSY;
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV < (this->targetV * this->m_giessFactor)))
+  if ((dosingFlag == WATER_BSY) && (m_currentVolume < (m_targetV * m_giessFactor)))
   {
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV > (this->targetV * this->m_giessFactor)))
+  if ((dosingFlag == WATER_BSY) && (m_currentVolume > (m_targetV * m_giessFactor)))
   {
-    digitalWrite(this->pin, LOW);
+    digitalWrite(m_pin, LOW);
     dosingFlag = WATER_IDLE;
     return 0;
   }
@@ -128,23 +129,23 @@ byte Magnetvalves::dosing(void)
   return -1;
 }
 
-byte Magnetvalves::dosing(float vol)
+int Magnetvalves::dosing(float vol)
 {
   if (dosingFlag == WATER_IDLE)
   {
-    digitalWrite(this->pin, HIGH);
+    digitalWrite(m_pin, HIGH);
     dosingFlag = WATER_BSY;
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV < vol))
+  if ((dosingFlag == WATER_BSY) && (m_currentVolume < vol))
   {
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (currV > vol))
+  if ((dosingFlag == WATER_BSY) && (m_currentVolume > vol))
   {
-    digitalWrite(this->pin, LOW);
+    digitalWrite(m_pin, LOW);
     dosingFlag = WATER_IDLE;
     return 0;
   }
@@ -152,14 +153,14 @@ byte Magnetvalves::dosing(float vol)
   return -1;
 }
 
-void Magnetvalves::setCurrentVolume(float vol)
+void Magnetvalves::setCurrentVolume(float newCurrentVolume)
 {
-  currV = vol;
+  m_currentVolume = newCurrentVolume;
 }
 
 float Magnetvalves::readCurrentVolume(void)
 {
-  return currV;
+  return m_currentVolume;
 }
 
 void Magnetvalves::setGiessFactor(float giessFactor)
@@ -191,7 +192,9 @@ float Thermocontrol::GetTempAverage()
     return (m_tempAddition / float(m_numberOfTempReadings));
   }
   else
+  {
   return -1;
+  }
 };
 
 void Thermocontrol::ResetAverage()
@@ -204,11 +207,13 @@ float Thermocontrol::GetGiessFactor()
 {
   if (m_numberOfTempReadings)
   {
-    return
-    pow(m_tempCoeff, (((m_tempAddition / m_numberOfTempReadings) / 20) - 1));
+    return pow(m_tempCoeff,
+      (((m_tempAddition / m_numberOfTempReadings) / 20) - 1));
   }
   else
+  {
   return 1;
+  }
 }
 
 void Thermocontrol::SetTempCoeff(float tempCoeff)
