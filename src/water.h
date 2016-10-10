@@ -7,67 +7,66 @@ enum statusFlag {WATER_IDLE, WATER_BSY};
 
 class Flowmeter {
   private:
-    byte pin;
-    int calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
-    long pulseCount;
+    int   m_pin;
+    int   m_calibrationFactor;  // Calibration factor for flow-meter = (Pulses / Liter)
+    long  m_pulseCount;
   public:
     Flowmeter(byte); // Constructor
-    void setCalibrationFactor(int);
+    void  setCalibrationFactor(int);
     long  getPulseCount();
-    void resetFlowMeter(void);
-    float  getVolume(void);
-    void pulse(void);
-    byte  getPin(void);
+    void  resetFlowMeter(void);
+    float getVolume(void);
+    void  pulse(void);
+    int  getPin(void);
 };
 
 class Pump {
   private:
-    byte pin;
+    int   m_pin;
   public:
     Pump(byte);
-    byte start(void);
-    void stop(void);
+    int  start(void);
+    void  stop(void);
 };
 
 
 class Magnetvalves {
   private:
-    byte pin;
-    byte targetV;
+    int   m_pin;
+    int   m_targetV;
     float m_giessFactor;
-    float currV;
-    char plant[9];
+    float m_currentVolume;
+    char  m_plantName[5];
   public:
     Magnetvalves(byte, const char *); // Constructor
-    //static byte flag;
-    void setVolumeTarget(int);
-    void incVolumeTarget(int);
-    byte  readVolumeTarget(void);
-    char * getPlant(void);
-    byte  dosing(void);
-    byte  dosing(float);
-    void setCurrentVolume(float);
-    float  readCurrentVolume(void);
-    void setGiessFactor(float);
+    void  setVolumeTarget(int);
+    void  incVolumeTarget(int);
+    int  readVolumeTarget(void);
+    char  *getPlant(void);
+    int  dosing(void);
+    int  dosing(float);
+    void  setCurrentVolume(float);
+    float readCurrentVolume(void);
+    void  setGiessFactor(float);
 };
 
 
 class Thermocontrol
 {
   private:
-  int m_numberOfTempReadings;
-  float m_tempAddition;
-  float m_tempCoeff;
-  int m_lowerAveragingHour;
+    int   m_numberOfTempReadings;
+    float m_tempAddition;
+    float m_tempCoeff;
+    int   m_lowerAveragingHour;
 
   public:
-  Thermocontrol(int);
-  void AddTempReading(float);
-  float GetTempAverage(void);
-  void ResetAverage(void);
-  void SetTempCoeff(float);
-  void IncTempCoeff(float);
-  float GetTempCoeff(void);
-  float GetGiessFactor(void);
-  int GetLowerAveragingHour(void);
+    Thermocontrol(int);
+    void  AddTempReading(float);
+    float GetTempAverage(void);
+    void  ResetAverage(void);
+    void  SetTempCoeff(float);
+    void  IncTempCoeff(float);
+    float GetTempCoeff(void);
+    float GetGiessFactor(void);
+    int   GetLowerAveragingHour(void);
 };
