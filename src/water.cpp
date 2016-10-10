@@ -11,7 +11,8 @@
 statusFlag dosingFlag = WATER_IDLE;
 void interuptPulse();
 
-/******* Flowmeter Member Functions *******/
+//----------------------------------------------------------------
+// Flowmeter Member Functions
 
 Flowmeter::Flowmeter(byte pin) // Constructor
 {
@@ -51,7 +52,8 @@ int Flowmeter::getPin()
   return m_pin;
 }
 
-/******* Pump Member Functions *******/
+//----------------------------------------------------------------
+// Pump Class
 
 Pump::Pump(byte pin)
 {
@@ -74,7 +76,8 @@ void Pump::stop(void)
  digitalWrite(m_pin, LOW);
 }
 
-/******* Magnetvalves Member Functions *******/
+//----------------------------------------------------------------
+// Magnetvalves
 
 Magnetvalves::Magnetvalves(byte pin, const char *plantName)
 {
@@ -100,7 +103,7 @@ void Magnetvalves::incVolumeTarget(int i)
   return m_targetV;
 }
 
-char * Magnetvalves::getPlant()
+char * Magnetvalves::getPlantName()
 {
   return m_plantName;
 }
@@ -168,8 +171,10 @@ void Magnetvalves::setGiessFactor(float giessFactor)
   m_giessFactor =  giessFactor;
 }
 
+
+
 //----------------------------------------------------------------
-// Thermocontrol class implementation
+// Thermocontroler
 
 Thermocontrol::Thermocontrol(int lowerAveragingHour)
 {

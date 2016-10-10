@@ -327,7 +327,7 @@ void statusDisplay(int gf, int ch)
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
 
     display.drawFastHLine(0, 9, 85, BLACK);
-    display.drawFastHLine(41, 31, 43, BLACK);
+    display.drawFastHLine(41, 32, 43, BLACK);
     display.drawFastVLine(40, 0, 48, BLACK);
 
     // Print current time
@@ -339,7 +339,7 @@ void statusDisplay(int gf, int ch)
     display.setTextColor(BLACK, WHITE);
 
     // Print giessFactor
-    display.setCursor(50, 33);
+    display.setCursor(50, 34);
     if (gf == -2 && ch == -3)
     {
       display.setTextColor(WHITE, BLACK);
@@ -361,7 +361,7 @@ void statusDisplay(int gf, int ch)
     }
     else
     {
-      display.print(" -- ");
+      display.print("---");
     }
     display.print("C");
 
@@ -385,7 +385,7 @@ void statusDisplay(int gf, int ch)
     {
       display.setCursor(0, (8*i + 13));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
-      display.print(valve[i].getPlant());
+      display.print(valve[i].getPlantName());
       display.setCursor(26, (8*i + 13));
       if (valve[i].readVolumeTarget()<10) display.print(" ");
       display.println(valve[i].readVolumeTarget());
@@ -397,7 +397,7 @@ void statusDisplay(int gf, int ch)
     {
       display.setCursor(44, (8*(i-4) + 13));
       if (gf == -2 && i == ch) display.setTextColor(WHITE, BLACK);
-      display.print(valve[i].getPlant());
+      display.print(valve[i].getPlantName());
       display.setCursor(70, (8 *(i-4) + 13));
       if (valve[i].readVolumeTarget()<10) display.print(" ");
       display.println(valve[i].readVolumeTarget());
@@ -437,7 +437,7 @@ void statusDisplay(int gf, int ch)
       {
         display.setTextColor(WHITE, BLACK);
         display.setCursor(0, (8*i+13));
-        display.print(valve[i].getPlant());
+        display.print(valve[i].getPlantName());
         display.setCursor(26, (8*i+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
@@ -446,7 +446,7 @@ void statusDisplay(int gf, int ch)
       else // Display idle channel
       {
         display.setCursor(0, (8*i+13));
-        display.print(valve[i].getPlant());
+        display.print(valve[i].getPlantName());
         display.setCursor(26, (8*i+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
@@ -460,7 +460,7 @@ void statusDisplay(int gf, int ch)
       {
         display.setTextColor(WHITE, BLACK);
         display.setCursor(44, (8*(i-4)+13));
-        display.print(valve[i].getPlant());
+        display.print(valve[i].getPlantName());
         display.setCursor(70, (8*(i-4)+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
@@ -469,7 +469,7 @@ void statusDisplay(int gf, int ch)
       else // Display idle channel
       {
         display.setCursor(44, (8*(i-4)+13));
-        display.print(valve[i].getPlant());
+        display.print(valve[i].getPlantName());
         display.setCursor(70, (8*(i-4)+13));
         if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
         display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));

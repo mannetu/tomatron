@@ -42,7 +42,7 @@ class Magnetvalves {
     void  setVolumeTarget(int);
     void  incVolumeTarget(int);
     int  readVolumeTarget(void);
-    char  *getPlant(void);
+    char  *getPlantName(void);
     int  dosing(void);
     int  dosing(float);
     void  setCurrentVolume(float);
