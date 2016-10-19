@@ -8505,7 +8505,7 @@ Grid 5.08 mm&lt;p&gt;
 <part name="C2" library="resistor" deviceset="CPOL-EU" device="E2.5-7"/>
 <part name="R1" library="eagle-ltspice" deviceset="R" device="0207/10" value="1,2k"/>
 <part name="PUMP" library="con-wago-500" deviceset="W237-102" device=""/>
-<part name="X3" library="con-wago" deviceset="233-112" device=""/>
+<part name="CTRL" library="con-wago" deviceset="233-112" device=""/>
 <part name="IC3" library="uln-udn" deviceset="ULN2803A" device=""/>
 <part name="P+1" library="supply1" deviceset="+12V" device=""/>
 <part name="P+2" library="supply1" deviceset="+12V" device=""/>
@@ -8515,7 +8515,7 @@ Grid 5.08 mm&lt;p&gt;
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
 <part name="P+4" library="supply1" deviceset="+12V" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
-<part name="TO_CTRL_BOX" library="con-wago-508" deviceset="W237-07P" device=""/>
+<part name="VALVES" library="con-wago-508" deviceset="W237-07P" device=""/>
 <part name="P+5" library="supply1" deviceset="+12V" device=""/>
 <part name="GND5" library="supply1" deviceset="GND" device=""/>
 <part name="P+6" library="supply1" deviceset="+5V" device=""/>
@@ -8538,31 +8538,31 @@ Grid 5.08 mm&lt;p&gt;
 <instance part="C1" gate="G$1" x="-30.48" y="-27.94"/>
 <instance part="C2" gate="G$1" x="0" y="-27.94"/>
 <instance part="R1" gate="G$1" x="76.2" y="30.48"/>
-<instance part="PUMP" gate="-1" x="91.44" y="63.5" rot="R270"/>
-<instance part="PUMP" gate="-2" x="96.52" y="63.5" rot="R270"/>
-<instance part="X3" gate="G$1" x="43.18" y="-25.4" rot="R180"/>
+<instance part="PUMP" gate="-1" x="96.52" y="63.5" rot="R270"/>
+<instance part="PUMP" gate="-2" x="91.44" y="63.5" rot="R270"/>
+<instance part="CTRL" gate="G$1" x="43.18" y="-25.4" rot="R180"/>
 <instance part="IC3" gate="G$1" x="93.98" y="-40.64"/>
-<instance part="P+1" gate="1" x="-58.42" y="-20.32"/>
+<instance part="P+1" gate="1" x="-53.34" y="-20.32"/>
 <instance part="P+2" gate="1" x="109.22" y="-17.78" rot="R270"/>
 <instance part="GND1" gate="1" x="81.28" y="-17.78"/>
 <instance part="P+3" gate="1" x="109.22" y="-58.42" rot="R270"/>
 <instance part="GND2" gate="1" x="81.28" y="-55.88"/>
 <instance part="GND3" gate="1" x="91.44" y="20.32"/>
 <instance part="P+4" gate="1" x="104.14" y="50.8" rot="R270"/>
-<instance part="GND4" gate="1" x="-58.42" y="-40.64"/>
-<instance part="TO_CTRL_BOX" gate="-1" x="129.54" y="-38.1" rot="R180"/>
-<instance part="TO_CTRL_BOX" gate="-2" x="129.54" y="-33.02" rot="R180"/>
-<instance part="TO_CTRL_BOX" gate="-3" x="129.54" y="-27.94" rot="R180"/>
-<instance part="TO_CTRL_BOX" gate="-4" x="129.54" y="-22.86" rot="R180"/>
-<instance part="TO_CTRL_BOX" gate="-5" x="129.54" y="-17.78" rot="R180"/>
-<instance part="TO_CTRL_BOX" gate="-6" x="129.54" y="-12.7" rot="R180"/>
-<instance part="TO_CTRL_BOX" gate="-7" x="129.54" y="-7.62" rot="R180"/>
+<instance part="GND4" gate="1" x="-53.34" y="-40.64"/>
+<instance part="VALVES" gate="-1" x="129.54" y="-38.1" rot="R180"/>
+<instance part="VALVES" gate="-2" x="129.54" y="-33.02" rot="R180"/>
+<instance part="VALVES" gate="-3" x="129.54" y="-27.94" rot="R180"/>
+<instance part="VALVES" gate="-4" x="129.54" y="-22.86" rot="R180"/>
+<instance part="VALVES" gate="-5" x="129.54" y="-17.78" rot="R180"/>
+<instance part="VALVES" gate="-6" x="129.54" y="-12.7" rot="R180"/>
+<instance part="VALVES" gate="-7" x="129.54" y="-7.62" rot="R180"/>
 <instance part="P+5" gate="1" x="124.46" y="0"/>
 <instance part="GND5" gate="1" x="66.04" y="-53.34"/>
 <instance part="P+6" gate="1" x="10.16" y="-22.86" rot="R270"/>
 <instance part="P+7" gate="1" x="58.42" y="-40.64" rot="R180"/>
-<instance part="POWER" gate="-1" x="-76.2" y="-30.48"/>
-<instance part="POWER" gate="-2" x="-76.2" y="-35.56"/>
+<instance part="POWER" gate="-1" x="-63.5" y="-35.56"/>
+<instance part="POWER" gate="-2" x="-63.5" y="-22.86"/>
 <instance part="FLOW" gate="-1" x="76.2" y="58.42" rot="R270"/>
 <instance part="FLOW" gate="-2" x="71.12" y="58.42" rot="R270"/>
 <instance part="FLOW" gate="-3" x="66.04" y="58.42" rot="R270"/>
@@ -8602,7 +8602,7 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="IC1" gate="G$1" pin="I5"/>
 <pinref part="IC1" gate="G$1" pin="I6"/>
 <wire x1="81.28" y1="-2.54" x2="81.28" y2="-5.08" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-8"/>
+<pinref part="CTRL" gate="G$1" pin="B-8"/>
 <wire x1="50.8" y1="-20.32" x2="71.12" y2="-20.32" width="0.1524" layer="91"/>
 <wire x1="71.12" y1="-20.32" x2="71.12" y2="-5.08" width="0.1524" layer="91"/>
 <wire x1="71.12" y1="-5.08" x2="81.28" y2="-5.08" width="0.1524" layer="91"/>
@@ -8614,7 +8614,7 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="IC1" gate="G$1" pin="I7"/>
 <pinref part="IC1" gate="G$1" pin="I8"/>
 <wire x1="81.28" y1="-7.62" x2="81.28" y2="-10.16" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-7"/>
+<pinref part="CTRL" gate="G$1" pin="B-7"/>
 <wire x1="50.8" y1="-22.86" x2="73.66" y2="-22.86" width="0.1524" layer="91"/>
 <wire x1="73.66" y1="-22.86" x2="73.66" y2="-10.16" width="0.1524" layer="91"/>
 <wire x1="73.66" y1="-10.16" x2="81.28" y2="-10.16" width="0.1524" layer="91"/>
@@ -8643,7 +8643,7 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-5.08" x2="116.84" y2="-5.08" width="0.1524" layer="91"/>
 <junction x="106.68" y="-5.08"/>
 <wire x1="116.84" y1="-5.08" x2="116.84" y2="-12.7" width="0.1524" layer="91"/>
-<pinref part="TO_CTRL_BOX" gate="-6" pin="KL"/>
+<pinref part="VALVES" gate="-6" pin="KL"/>
 <wire x1="116.84" y1="-12.7" x2="124.46" y2="-12.7" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8655,7 +8655,7 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-10.16" x2="114.3" y2="-10.16" width="0.1524" layer="91"/>
 <wire x1="114.3" y1="-10.16" x2="114.3" y2="-17.78" width="0.1524" layer="91"/>
 <junction x="106.68" y="-10.16"/>
-<pinref part="TO_CTRL_BOX" gate="-5" pin="KL"/>
+<pinref part="VALVES" gate="-5" pin="KL"/>
 <wire x1="114.3" y1="-17.78" x2="124.46" y2="-17.78" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8669,16 +8669,16 @@ Grid 5.08 mm&lt;p&gt;
 <net name="N$15" class="0">
 <segment>
 <pinref part="Q1" gate="G$1" pin="D"/>
-<wire x1="91.44" y1="58.42" x2="91.44" y2="40.64" width="0.1524" layer="91"/>
 <pinref part="D2" gate="1" pin="C"/>
 <wire x1="91.44" y1="40.64" x2="91.44" y2="38.1" width="0.1524" layer="91"/>
 <wire x1="109.22" y1="35.56" x2="109.22" y2="40.64" width="0.1524" layer="91"/>
 <wire x1="109.22" y1="40.64" x2="91.44" y2="40.64" width="0.1524" layer="91"/>
 <junction x="91.44" y="40.64"/>
-<pinref part="PUMP" gate="-1" pin="KL"/>
 <pinref part="FLOW" gate="-2" pin="KL"/>
 <wire x1="71.12" y1="53.34" x2="71.12" y2="40.64" width="0.1524" layer="91"/>
 <wire x1="71.12" y1="40.64" x2="91.44" y2="40.64" width="0.1524" layer="91"/>
+<pinref part="PUMP" gate="-2" pin="KL"/>
+<wire x1="91.44" y1="40.64" x2="91.44" y2="58.42" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$16" class="0">
@@ -8689,7 +8689,7 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-33.02" x2="114.3" y2="-33.02" width="0.1524" layer="91"/>
 <wire x1="114.3" y1="-33.02" x2="114.3" y2="-22.86" width="0.1524" layer="91"/>
 <junction x="106.68" y="-33.02"/>
-<pinref part="TO_CTRL_BOX" gate="-4" pin="KL"/>
+<pinref part="VALVES" gate="-4" pin="KL"/>
 <wire x1="114.3" y1="-22.86" x2="124.46" y2="-22.86" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8701,7 +8701,7 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-38.1" x2="116.84" y2="-38.1" width="0.1524" layer="91"/>
 <wire x1="116.84" y1="-38.1" x2="116.84" y2="-27.94" width="0.1524" layer="91"/>
 <junction x="106.68" y="-38.1"/>
-<pinref part="TO_CTRL_BOX" gate="-3" pin="KL"/>
+<pinref part="VALVES" gate="-3" pin="KL"/>
 <wire x1="116.84" y1="-27.94" x2="124.46" y2="-27.94" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8713,7 +8713,7 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-43.18" x2="119.38" y2="-43.18" width="0.1524" layer="91"/>
 <wire x1="119.38" y1="-43.18" x2="119.38" y2="-33.02" width="0.1524" layer="91"/>
 <junction x="106.68" y="-43.18"/>
-<pinref part="TO_CTRL_BOX" gate="-2" pin="KL"/>
+<pinref part="VALVES" gate="-2" pin="KL"/>
 <wire x1="119.38" y1="-33.02" x2="124.46" y2="-33.02" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8725,7 +8725,7 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-48.26" x2="121.92" y2="-48.26" width="0.1524" layer="91"/>
 <junction x="106.68" y="-48.26"/>
 <wire x1="121.92" y1="-48.26" x2="121.92" y2="-38.1" width="0.1524" layer="91"/>
-<pinref part="TO_CTRL_BOX" gate="-1" pin="KL"/>
+<pinref part="VALVES" gate="-1" pin="KL"/>
 <wire x1="121.92" y1="-38.1" x2="124.46" y2="-38.1" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8734,7 +8734,7 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="IC3" gate="G$1" pin="I8"/>
 <pinref part="IC3" gate="G$1" pin="I7"/>
 <wire x1="81.28" y1="-48.26" x2="81.28" y2="-45.72" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-3"/>
+<pinref part="CTRL" gate="G$1" pin="B-3"/>
 <wire x1="50.8" y1="-33.02" x2="68.58" y2="-33.02" width="0.1524" layer="91"/>
 <wire x1="68.58" y1="-33.02" x2="68.58" y2="-45.72" width="0.1524" layer="91"/>
 <wire x1="68.58" y1="-45.72" x2="81.28" y2="-45.72" width="0.1524" layer="91"/>
@@ -8746,7 +8746,7 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="IC3" gate="G$1" pin="I6"/>
 <pinref part="IC3" gate="G$1" pin="I5"/>
 <wire x1="81.28" y1="-43.18" x2="81.28" y2="-40.64" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-4"/>
+<pinref part="CTRL" gate="G$1" pin="B-4"/>
 <wire x1="50.8" y1="-30.48" x2="71.12" y2="-30.48" width="0.1524" layer="91"/>
 <wire x1="71.12" y1="-30.48" x2="71.12" y2="-40.64" width="0.1524" layer="91"/>
 <wire x1="71.12" y1="-40.64" x2="81.28" y2="-40.64" width="0.1524" layer="91"/>
@@ -8758,7 +8758,7 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="IC3" gate="G$1" pin="I4"/>
 <pinref part="IC3" gate="G$1" pin="I3"/>
 <wire x1="81.28" y1="-38.1" x2="81.28" y2="-35.56" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-5"/>
+<pinref part="CTRL" gate="G$1" pin="B-5"/>
 <wire x1="50.8" y1="-27.94" x2="73.66" y2="-27.94" width="0.1524" layer="91"/>
 <wire x1="73.66" y1="-27.94" x2="73.66" y2="-35.56" width="0.1524" layer="91"/>
 <wire x1="73.66" y1="-35.56" x2="81.28" y2="-35.56" width="0.1524" layer="91"/>
@@ -8770,7 +8770,7 @@ Grid 5.08 mm&lt;p&gt;
 <pinref part="IC3" gate="G$1" pin="I2"/>
 <pinref part="IC3" gate="G$1" pin="I1"/>
 <wire x1="81.28" y1="-33.02" x2="81.28" y2="-30.48" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-6"/>
+<pinref part="CTRL" gate="G$1" pin="B-6"/>
 <wire x1="50.8" y1="-25.4" x2="76.2" y2="-25.4" width="0.1524" layer="91"/>
 <wire x1="76.2" y1="-25.4" x2="76.2" y2="-30.48" width="0.1524" layer="91"/>
 <wire x1="76.2" y1="-30.48" x2="81.28" y2="-30.48" width="0.1524" layer="91"/>
@@ -8780,12 +8780,11 @@ Grid 5.08 mm&lt;p&gt;
 <net name="+12V" class="0">
 <segment>
 <pinref part="D1" gate="1" pin="A"/>
-<wire x1="-48.26" y1="-22.86" x2="-58.42" y2="-22.86" width="0.1524" layer="91"/>
+<wire x1="-48.26" y1="-22.86" x2="-53.34" y2="-22.86" width="0.1524" layer="91"/>
 <pinref part="P+1" gate="1" pin="+12V"/>
-<pinref part="POWER" gate="-1" pin="KL"/>
-<wire x1="-71.12" y1="-30.48" x2="-58.42" y2="-30.48" width="0.1524" layer="91"/>
-<wire x1="-58.42" y1="-30.48" x2="-58.42" y2="-22.86" width="0.1524" layer="91"/>
-<junction x="-58.42" y="-22.86"/>
+<pinref part="POWER" gate="-2" pin="KL"/>
+<junction x="-53.34" y="-22.86"/>
+<wire x1="-53.34" y1="-22.86" x2="-58.42" y2="-22.86" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="IC1" gate="G$1" pin="CD+"/>
@@ -8798,13 +8797,13 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="106.68" y1="-50.8" x2="106.68" y2="-58.42" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="PUMP" gate="-2" pin="KL"/>
-<wire x1="96.52" y1="58.42" x2="96.52" y2="50.8" width="0.1524" layer="91"/>
 <wire x1="96.52" y1="50.8" x2="101.6" y2="50.8" width="0.1524" layer="91"/>
 <pinref part="P+4" gate="1" pin="+12V"/>
+<pinref part="PUMP" gate="-1" pin="KL"/>
+<wire x1="96.52" y1="50.8" x2="96.52" y2="58.42" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="TO_CTRL_BOX" gate="-7" pin="KL"/>
+<pinref part="VALVES" gate="-7" pin="KL"/>
 <pinref part="P+5" gate="1" pin="+12V"/>
 <wire x1="124.46" y1="-2.54" x2="124.46" y2="-7.62" width="0.1524" layer="91"/>
 </segment>
@@ -8838,9 +8837,7 @@ Grid 5.08 mm&lt;p&gt;
 </segment>
 <segment>
 <pinref part="GND4" gate="1" pin="GND"/>
-<wire x1="-58.42" y1="-35.56" x2="-58.42" y2="-38.1" width="0.1524" layer="91"/>
-<pinref part="POWER" gate="-2" pin="KL"/>
-<wire x1="-71.12" y1="-35.56" x2="-58.42" y2="-35.56" width="0.1524" layer="91"/>
+<wire x1="-58.42" y1="-35.56" x2="-53.34" y2="-38.1" width="0.1524" layer="91"/>
 <pinref part="C2" gate="G$1" pin="-"/>
 <wire x1="-15.24" y1="-35.56" x2="0" y2="-35.56" width="0.1524" layer="91"/>
 <wire x1="0" y1="-35.56" x2="0" y2="-33.02" width="0.1524" layer="91"/>
@@ -8848,14 +8845,15 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="-15.24" y1="-30.48" x2="-15.24" y2="-35.56" width="0.1524" layer="91"/>
 <wire x1="-15.24" y1="-35.56" x2="-30.48" y2="-35.56" width="0.1524" layer="91"/>
 <junction x="-15.24" y="-35.56"/>
-<junction x="-58.42" y="-35.56"/>
 <pinref part="C1" gate="G$1" pin="-"/>
 <wire x1="-30.48" y1="-35.56" x2="-58.42" y2="-35.56" width="0.1524" layer="91"/>
 <wire x1="-30.48" y1="-35.56" x2="-30.48" y2="-33.02" width="0.1524" layer="91"/>
 <junction x="-30.48" y="-35.56"/>
+<pinref part="POWER" gate="-1" pin="KL"/>
+<junction x="-58.42" y="-35.56"/>
 </segment>
 <segment>
-<pinref part="X3" gate="G$1" pin="B-2"/>
+<pinref part="CTRL" gate="G$1" pin="B-2"/>
 <wire x1="50.8" y1="-35.56" x2="66.04" y2="-35.56" width="0.1524" layer="91"/>
 <wire x1="66.04" y1="-35.56" x2="66.04" y2="-50.8" width="0.1524" layer="91"/>
 <pinref part="GND5" gate="1" pin="GND"/>
@@ -8874,12 +8872,12 @@ Grid 5.08 mm&lt;p&gt;
 <segment>
 <pinref part="P+7" gate="1" pin="+5V"/>
 <wire x1="58.42" y1="-38.1" x2="50.8" y2="-38.1" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-1"/>
+<pinref part="CTRL" gate="G$1" pin="B-1"/>
 </segment>
 </net>
 <net name="N$26" class="0">
 <segment>
-<pinref part="X3" gate="G$1" pin="B-9"/>
+<pinref part="CTRL" gate="G$1" pin="B-9"/>
 <wire x1="50.8" y1="-17.78" x2="68.58" y2="-17.78" width="0.1524" layer="91"/>
 <pinref part="R1" gate="G$1" pin="1"/>
 <wire x1="71.12" y1="30.48" x2="68.58" y2="30.48" width="0.1524" layer="91"/>
@@ -8890,7 +8888,7 @@ Grid 5.08 mm&lt;p&gt;
 <segment>
 <pinref part="FLOW" gate="-3" pin="KL"/>
 <wire x1="66.04" y1="53.34" x2="66.04" y2="-10.16" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-12"/>
+<pinref part="CTRL" gate="G$1" pin="B-12"/>
 <wire x1="66.04" y1="-10.16" x2="50.8" y2="-10.16" width="0.1524" layer="91"/>
 </segment>
 </net>
@@ -8899,14 +8897,14 @@ Grid 5.08 mm&lt;p&gt;
 <wire x1="58.42" y1="-15.24" x2="58.42" y2="5.08" width="0.1524" layer="91"/>
 <pinref part="JP1" gate="G$1" pin="2"/>
 <wire x1="58.42" y1="-15.24" x2="50.8" y2="-15.24" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-10"/>
+<pinref part="CTRL" gate="G$1" pin="B-10"/>
 </segment>
 </net>
 <net name="N$3" class="0">
 <segment>
 <pinref part="JP1" gate="G$1" pin="1"/>
 <wire x1="55.88" y1="5.08" x2="55.88" y2="-12.7" width="0.1524" layer="91"/>
-<pinref part="X3" gate="G$1" pin="B-11"/>
+<pinref part="CTRL" gate="G$1" pin="B-11"/>
 <wire x1="55.88" y1="-12.7" x2="50.8" y2="-12.7" width="0.1524" layer="91"/>
 </segment>
 </net>
