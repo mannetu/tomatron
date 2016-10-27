@@ -94,8 +94,8 @@ void Magnetvalves::setVolumeTarget(int targetV)
 void Magnetvalves::incVolumeTarget(int i)
 {
   m_targetV += i;
+  if (m_targetV == -1) m_targetV = 99;
   if (m_targetV == 100) m_targetV = 0;
-  if (m_targetV == 255) m_targetV = 99;
 }
 
   int Magnetvalves::readVolumeTarget()

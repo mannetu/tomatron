@@ -70,8 +70,8 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
   Magnetvalves(6, "To2  "),  // ATmega pin 12
   Magnetvalves(7, "To3  "),  // ATmega pin 13
   Magnetvalves(8, "Pa1  "),  // ATmega pin 14
-  Magnetvalves(0, "Pa2  "),  // ATmega pin __
-  Magnetvalves(1, "Gu1  ")   // ATmega pin __
+  Magnetvalves(A1, "Pa2  "),  // ATmega pin 24
+  Magnetvalves(A2, "Gu1  ")   // ATmega pin 25
 };
 
 Pump pump(4); // ATmega pin 6
