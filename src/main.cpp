@@ -327,7 +327,7 @@ void statusDisplay(int gf, int ch)
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
 
     display.drawFastHLine(0, 9, 85, BLACK);
-    display.drawFastHLine(41, 32, 43, BLACK);
+    display.drawFastHLine(41, 30, 43, BLACK);
     display.drawFastVLine(40, 0, 48, BLACK);
 
     // Print current time
@@ -339,7 +339,7 @@ void statusDisplay(int gf, int ch)
     display.setTextColor(BLACK, WHITE);
 
     // Print giessFactor
-    display.setCursor(50, 34);
+    display.setCursor(47, 33);
     if (gf == -2 && ch == -3)
     {
       display.setTextColor(WHITE, BLACK);
@@ -414,7 +414,7 @@ void statusDisplay(int gf, int ch)
   {
     // Divide display in boxes
     display.drawFastHLine(0, 9, 85, BLACK);
-    display.drawFastHLine(41, 32, 43, BLACK);
+    display.drawFastHLine(41, 30, 43, BLACK);
     display.drawFastVLine(40, 10, 38, BLACK);
 
     // Blinking Title "Wasser" (in top box)
