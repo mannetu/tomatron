@@ -66,12 +66,12 @@ unsigned int btnDelay =   200; // Debounce delay
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
-  Magnetvalves(5, "To1  "),  // ATmega pin 11
-  Magnetvalves(6, "To2  "),  // ATmega pin 12
-  Magnetvalves(7, "To3  "),  // ATmega pin 13
-  Magnetvalves(8, "Pa1  "),  // ATmega pin 14
-  Magnetvalves(A1, "Pa2  "),  // ATmega pin 24
-  Magnetvalves(A2, "Gu1  ")   // ATmega pin 25
+  Magnetvalves(5, "Tom1  "),  // ATmega pin 11
+  Magnetvalves(6, "Tom2  "),  // ATmega pin 12
+  Magnetvalves(7, "Tom3  "),  // ATmega pin 13
+  Magnetvalves(8, "Pap1  "),  // ATmega pin 14
+  Magnetvalves(A1,"Pap2  "),  // ATmega pin 24
+  Magnetvalves(A2,"Gur1  ")   // ATmega pin 25
 };
 
 Pump pump(4); // ATmega pin 6
