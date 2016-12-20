@@ -1,7 +1,9 @@
+#ifndef WATER_H
+#define WATER_H
 /* water.h */
 
 #include <Arduino.h>
-#include <DS3232RTC.h>
+
 
 enum statusFlag {WATER_IDLE, WATER_BSY};
 
@@ -70,3 +72,5 @@ class Thermocontrol
     float GetGiessFactor(void);
     int   GetLowerAveragingHour(void);
 };
+
+#endif // WATER_H

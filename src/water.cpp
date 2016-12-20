@@ -1,12 +1,6 @@
 /* water.cpp */
 
-#ifndef _ArduinoH_
-  #include <Arduino.h>
-#endif
-
-#ifndef _WaterH_
-  #include "water.h"
-#endif
+#include "water.h"
 
 statusFlag dosingFlag = WATER_IDLE;
 void interuptPulse();

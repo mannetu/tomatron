@@ -1,11 +1,13 @@
+
+
+
 /***********************************************
-*  Tomatron v0.1
+*  Tomatron v1.0
 *
 *
 ***********************************************/
 
 #include <Arduino.h>
-#define _ArduinoH_
 #include <EEPROM.h>
 #include <Time.h>
 #include <avr/wdt.h>  // Watchdog-Timer
@@ -15,7 +17,6 @@
 #include <DS3232RTC.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
-#define _WaterH_
 #include "water.h"
 
 //---------------------------------------------------------
@@ -39,8 +40,9 @@ struct s_giess {
 } giess;
 
 //---------------------------------------------------------
-// Nokia 5110 Display
+// Display
 //---------------------------------------------------------
+// Nokia 5110 Adafruit Library
 // Software SPI (slower updates, more flexible pin options):
 // pin 12 - Serial clock out (SCLK)
 // pin 11 - Serial data out (DIN)
