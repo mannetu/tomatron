@@ -1,8 +1,6 @@
 
-
-
 /***********************************************
-*  Tomatron v1.0
+*  Tomatron v2.0
 *
 *
 ***********************************************/
@@ -59,6 +57,7 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
 const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
 const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
+const byte pinManualBtn = PC0; // Manual-Button, ATmega pin 23
 
 unsigned int btnDelay =   200; // Debounce delay
 
@@ -68,12 +67,12 @@ unsigned int btnDelay =   200; // Debounce delay
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
 Magnetvalves valve[CHANNEL] = {  // 8 characters max.
-  Magnetvalves(5, "Tom1  "),  // ATmega pin 11
-  Magnetvalves(6, "Tom2  "),  // ATmega pin 12
-  Magnetvalves(7, "Tom3  "),  // ATmega pin 13
-  Magnetvalves(8, "Pap1  "),  // ATmega pin 14
-  Magnetvalves(A1,"Pap2  "),  // ATmega pin 24
-  Magnetvalves(A2,"Gur1  ")   // ATmega pin 25
+  Magnetvalves(5,   "Tom1  "),  // ATmega pin 11
+  Magnetvalves(6,   "Tom2  "),  // ATmega pin 12
+  Magnetvalves(7,   "Tom3  "),  // ATmega pin 13
+  Magnetvalves(8,   "Pap1  "),  // ATmega pin 14
+  Magnetvalves(PC1, "Pap2  "),  // ATmega pin 24
+  Magnetvalves(PC2, "Gur1  ")   // ATmega pin 25
 };
 
 Pump pump(4); // ATmega pin 6
@@ -88,6 +87,7 @@ volatile boolean alarmIsrWasCalled = true;
 
 int   checkGiessen(void);
 void  giessRoutine(void);
+void   manualGiess(int);
 void  statusDisplay(int, int);
 
 void  interruptPulse(void);
@@ -104,7 +104,8 @@ void  calibrationDisplay(double);
 
 
 //-------------------------------------------------------------------
-// Setup
+//-------------------------------------------------------------------
+// SETUP
 //-------------------------------------------------------------------
 void setup()
 {
@@ -160,6 +161,7 @@ void setup()
   pinMode(pinEnterBtn, INPUT);   //external pull-up resistor required due to interrupt function!!
   pinMode(pinUpBtn, INPUT_PULLUP);
   pinMode(pinDownBtn, INPUT_PULLUP);
+  pinMode(pinManualBtn, INPUT_PULLUP);
   flow.resetFlowMeter();
 
   // Read giessTime from EEPROM
@@ -311,6 +313,55 @@ void giessRoutine()
   }
 }
 
+//--------------------------------------------------------------
+// Function name: manualGiess
+//--------------------------------------------------------------
+void manualGiess(int ch)
+{
+  pump.start();
+  delay(2000);
+  giess.flag = ch;
+  flow.resetFlowMeter();
+  valve[ch].open();
+  while (pinManualBtn != 0 || pinEnterBtn != 0)
+  {
+    valve[giess.flag].setCurrentVolume(flow.getVolume());
+    if ((millis() - giess.lastCall > DISPLAY_UPDATE))
+    {
+      statusDisplay(giess.flag, -1);
+      giess.lastCall = millis();
+    }
+    wdt_reset();
+  }
+  valve[ch].close();
+  pump.stop();
+  giess.flag = CTRL_IDLE;
+
+  // Show instructions on display
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Menge als");
+  display.println("neuen Wert");
+  display.println("übernehmen ?");
+  display.println("+ = ja");
+  display.println("andere = nein");
+  display.display();
+
+  delay(2 * btnDelay);
+
+  while (pinDownBtn != 0 || pinEnterBtn != 0 || pinManualBtn != 0)
+  {
+    if (pinUpBtn == 0)
+    {
+      valve[ch].setVolumeTarget(flow.getVolume());
+      writeParameters();
+      delay(2 * btnDelay);
+      return;
+    }
+  }
+  delay(2 * btnDelay);
+  return;
+}
 
 //--------------------------------------------------------------
 // Status Display
@@ -493,7 +544,11 @@ void interuptPulse()
 
 
 //-------------------------------------------------------------
-// Parameter Set Routine
+//-------------------------------------------------------------
+// SET MODE
+//
+// setParameters(): Routine to set parameters and time
+// writeParameters(): write to EEPROM and RTC
 //-------------------------------------------------------------
 void setParameters()
 {
@@ -501,7 +556,7 @@ void setParameters()
   int channel = 0;
   long lastActivity;
 
-  delay(2 *  btnDelay);
+  delay(2 * btnDelay);
   lastActivity = millis();
 
   // Set target volumes
@@ -531,6 +586,12 @@ void setParameters()
       delay(btnDelay);
       lastActivity = millis();
       wdt_reset();
+    }
+
+    if (digitalRead(pinManualBtn) == 0 && (giess.flag == CTRL_IDLE)) // Enter manual gieesing
+    {
+      manualGiess(channel);
+      channel++;
     }
 
     statusDisplay(-2, channel);  // Update display
@@ -649,10 +710,7 @@ void setParameters()
   writeParameters();
 }
 
-//---------------------------------------------------------------------
-// void writeParameters(void)
-// Writes parameters from setParameters() function to EEPROM or RTC
-//---------------------------------------------------------------------
+
 void writeParameters()
 {
   // Write new giessTime to EEPROM
@@ -680,18 +738,20 @@ void writeParameters()
   wdt_reset();
 }
 
+
 //---------------------------------------------------------------------
-// void btnInterruptSleep(void)
-// Interrupt handler for RTC alarm
+//---------------------------------------------------------------------
+// INTERUPT HANDLER for RTC alarm
 //---------------------------------------------------------------------
 void btnInterruptSleep(void) // Back from sleep
 {
   alarmIsrWasCalled = true;
 }
 
+
 //---------------------------------------------------------------------
-// void enterSleep(void)
-//
+//---------------------------------------------------------------------
+// SLEEP MODE
 //---------------------------------------------------------------------
 void enterSleep(void)
 {
@@ -719,12 +779,13 @@ void enterSleep(void)
 
 
 //--------------------------------------------------------------
-// Function name: calibration()
+//--------------------------------------------------------------
+// CALIBRATION MODE
 //--------------------------------------------------------------
 void calibration()
 {
   int cf; // calibration factor
-  double vol = 10.0; // Volume dispensed for calibration
+  double vol = 2.0; // Volume dispensed for calibration
   int eeAdress = sizeof(time_t);
 
   wdt_disable();
@@ -734,9 +795,9 @@ void calibration()
   display.setCursor(0,0);
   display.println("Kalibierung");
   display.println("Taste drucken");
-  display.println("10L aus V1:");
+  display.println("2L aus V1:");
   display.println("Genaue Menge");
-  display.println("auswiegen!");
+  display.println("bestimmen!");
   display.display();
   flow.resetFlowMeter();
 
@@ -778,10 +839,6 @@ void calibration()
   wdt_enable(WDTO_8S);
 }
 
-
-//--------------------------------------------------------------
-// Function name: calibrationDoseDisplay()
-//--------------------------------------------------------------
 void calibrationDoseDisplay(int vol)
 {
   display.clearDisplay();

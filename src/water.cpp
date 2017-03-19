@@ -126,6 +126,18 @@ int Magnetvalves::dosing(void)
   return -1;
 }
 
+void Magnetvalves::open(void)
+{
+  digitalWrite(m_pin, HIGH);
+  dosingFlag = WATER_BSY;
+}
+
+void Magnetvalves::close(void)
+{
+  digitalWrite(m_pin, LOW);
+  dosingFlag = WATER_IDLE;
+}
+
 int Magnetvalves::dosing(float vol)
 {
   if (dosingFlag == WATER_IDLE)
