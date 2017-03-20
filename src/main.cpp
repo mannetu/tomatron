@@ -293,7 +293,7 @@ int checkGiessen()
 //--------------------------------------------------------------
 void giessRoutine()
 {
-  if (pump.start()) delay(2000); // wait for 2s if pump had to be started
+  if (pump.start()) delay(1000); // wait for 2s if pump had to be started
 
   valve[giess.flag].setCurrentVolume(flow.getVolume());
 
