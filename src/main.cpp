@@ -323,7 +323,7 @@ void manualGiess(int ch)
   giess.flag = ch;
   flow.resetFlowMeter();
   valve[ch].open();
-  while (pinManualBtn != 0 || pinEnterBtn != 0)
+  while (digitalRead(pinManualBtn) != 0 || digitalRead(pinEnterBtn) != 0)
   {
     valve[giess.flag].setCurrentVolume(flow.getVolume());
     if ((millis() - giess.lastCall > DISPLAY_UPDATE))
@@ -349,9 +349,10 @@ void manualGiess(int ch)
 
   delay(2 * btnDelay);
 
-  while (pinDownBtn != 0 || pinEnterBtn != 0 || pinManualBtn != 0)
+  while (digitalRead(pinDownBtn) != 0 || digitalRead(pinEnterBtn) != 0 ||
+          digitalRead(pinManualBtn) != 0)
   {
-    if (pinUpBtn == 0)
+    if (digitalRead(pinUpBtn) == 0)
     {
       valve[ch].setVolumeTarget(flow.getVolume());
       writeParameters();
