@@ -57,7 +57,7 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
 const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
 const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
-const byte pinManualBtn = PC0; // Manual-Button, ATmega pin 23
+const byte pinManualBtn = A0; // Manual-Button, ATmega pin 23
 
 unsigned int btnDelay =   200; // Debounce delay
 
@@ -71,8 +71,8 @@ Magnetvalves valve[CHANNEL] = {  // 8 characters max.
   Magnetvalves(6,   "Tom2  "),  // ATmega pin 12
   Magnetvalves(7,   "Tom3  "),  // ATmega pin 13
   Magnetvalves(8,   "Pap1  "),  // ATmega pin 14
-  Magnetvalves(PC1, "Pap2  "),  // ATmega pin 24
-  Magnetvalves(PC2, "Gur1  ")   // ATmega pin 25
+  Magnetvalves(A1, "Pap2  "),  // ATmega pin 24
+  Magnetvalves(A2, "Gur1  ")   // ATmega pin 25
 };
 
 Pump pump(4); // ATmega pin 6
@@ -319,11 +319,11 @@ void giessRoutine()
 void manualGiess(int ch)
 {
   pump.start();
-  delay(2000);
+  delay(500);
   giess.flag = ch;
   flow.resetFlowMeter();
   valve[ch].open();
-  while (digitalRead(pinManualBtn) != 0 || digitalRead(pinEnterBtn) != 0)
+  while (digitalRead(pinManualBtn) != 0 && digitalRead(pinEnterBtn) != 0)
   {
     valve[giess.flag].setCurrentVolume(flow.getVolume());
     if ((millis() - giess.lastCall > DISPLAY_UPDATE))
@@ -342,14 +342,14 @@ void manualGiess(int ch)
   display.setCursor(0,0);
   display.println("Menge als");
   display.println("neuen Wert");
-  display.println("übernehmen ?");
+  display.println("uebernehmen ?");
   display.println("+ = ja");
   display.println("andere = nein");
   display.display();
 
-  delay(2 * btnDelay);
+  delay(btnDelay);
 
-  while (digitalRead(pinDownBtn) != 0 || digitalRead(pinEnterBtn) != 0 ||
+  while (digitalRead(pinDownBtn) != 0 && digitalRead(pinEnterBtn) != 0 &&
           digitalRead(pinManualBtn) != 0)
   {
     if (digitalRead(pinUpBtn) == 0)
@@ -359,6 +359,7 @@ void manualGiess(int ch)
       delay(2 * btnDelay);
       return;
     }
+    wdt_reset();
   }
   delay(2 * btnDelay);
   return;
