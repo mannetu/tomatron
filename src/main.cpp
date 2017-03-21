@@ -328,7 +328,7 @@ void manualGiess(int ch)
     valve[giess.flag].setCurrentVolume(flow.getVolume());
     if ((millis() - giess.lastCall > DISPLAY_UPDATE))
     {
-      statusDisplay(giess.flag, -1);
+      statusDisplay(giess.flag, -5);
       giess.lastCall = millis();
     }
     wdt_reset();
@@ -495,8 +495,12 @@ void statusDisplay(int gf, int ch)
         display.setCursor(0, (8*i+13));
         display.print(valve[i].getPlantName());
         display.setCursor(26, (8*i+13));
-        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
-        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
+        if (ch == -5) display.println(" M");
+        else
+        {
+          if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
+          display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
+        }
         display.setTextColor(BLACK, WHITE);
       }
       else // Display idle channel
@@ -518,8 +522,12 @@ void statusDisplay(int gf, int ch)
         display.setCursor(44, (8*(i-4)+13));
         display.print(valve[i].getPlantName());
         display.setCursor(70, (8*(i-4)+13));
-        if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
-        display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
+        if (ch == -5) display.println(" M");
+        else
+        {
+          if (round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()) < 10) display.print(" ");
+          display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
+        }
         display.setTextColor(BLACK, WHITE);
       }
       else // Display idle channel
@@ -565,7 +573,8 @@ void setParameters()
   // Set target volumes
   while (channel < CHANNEL)
   {
-    if (digitalRead(pinEnterBtn) == 0) // Choose next channel
+    // Enter menu
+    if (digitalRead(pinEnterBtn) == 0)
     {
       channel++;
       delay(btnDelay);
@@ -573,7 +582,15 @@ void setParameters()
       wdt_reset();
     }
 
-    if (digitalRead(pinUpBtn) == 0) // Increase volume
+    // Enter manual mode
+    if (digitalRead(pinManualBtn) == 0 && (giess.flag == CTRL_IDLE))
+    {
+      manualGiess(channel);
+      lastActivity = millis();
+    }
+
+    // Increase volume
+    if (digitalRead(pinUpBtn) == 0)
     {
       valve[channel].incVolumeTarget(1);
       statusDisplay(-2, channel);
@@ -582,19 +599,14 @@ void setParameters()
       wdt_reset();
     }
 
-    if (digitalRead(pinDownBtn) == 0) // Decrease volume
+    // Decrease volume
+    if (digitalRead(pinDownBtn) == 0)
     {
       valve[channel].incVolumeTarget(-1);
       statusDisplay(-2, channel);
       delay(btnDelay);
       lastActivity = millis();
       wdt_reset();
-    }
-
-    if (digitalRead(pinManualBtn) == 0 && (giess.flag == CTRL_IDLE)) // Enter manual gieesing
-    {
-      manualGiess(channel);
-      //channel++;
     }
 
     statusDisplay(-2, channel);  // Update display
