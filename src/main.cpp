@@ -355,13 +355,14 @@ void manualGiess(int ch)
     if (digitalRead(pinUpBtn) == 0)
     {
       valve[ch].setVolumeTarget(flow.getVolume());
+      wdt_reset();
       writeParameters();
-      delay(2 * btnDelay);
+      delay(btnDelay);
       return;
     }
     wdt_reset();
   }
-  delay(2 * btnDelay);
+  delay(btnDelay);
   return;
 }
 
@@ -593,7 +594,7 @@ void setParameters()
     if (digitalRead(pinManualBtn) == 0 && (giess.flag == CTRL_IDLE)) // Enter manual gieesing
     {
       manualGiess(channel);
-      channel++;
+      //channel++;
     }
 
     statusDisplay(-2, channel);  // Update display
