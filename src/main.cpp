@@ -343,7 +343,7 @@ void manualGiess(int ch)
   display.println("Menge als");
   display.println("neuen Wert");
   display.println("uebernehmen ?");
-  display.println("+ = ja");
+  display.println("+ Taste = ja");
   display.println("andere = nein");
   display.display();
 
@@ -587,6 +587,7 @@ void setParameters()
     {
       manualGiess(channel);
       lastActivity = millis();
+      wdt_reset();
     }
 
     // Increase volume
