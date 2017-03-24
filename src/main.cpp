@@ -55,9 +55,9 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(12, 11, 10, 9);
 // Buttons
 //---------------------------------------------------------
 const byte pinUpBtn =     0;   // Up-Button, ATmega pin 2
-const byte pinDownBtn =   1;   // Down-Button, ATmega pin 3
+const byte pinDownBtn =   A0;   // Down-Button, ATmega pin 3
 const byte pinEnterBtn =  2;   // Enter-Button, Interupt 0, ATmega pin 4
-const byte pinManualBtn = A0; // Manual-Button, ATmega pin 23
+const byte pinManualBtn = 1; // Manual-Button, ATmega pin 23
 
 unsigned int btnDelay =   200; // Debounce delay
 
@@ -349,6 +349,9 @@ void manualGiess(int ch)
 
   delay(btnDelay);
 
+  long lastActivity;
+  lastActivity = millis();
+
   while (digitalRead(pinDownBtn) != 0 && digitalRead(pinEnterBtn) != 0 &&
           digitalRead(pinManualBtn) != 0)
   {
@@ -361,6 +364,7 @@ void manualGiess(int ch)
       return;
     }
     wdt_reset();
+    if (millis() - lastActivity > 5000) return;
   }
   delay(btnDelay);
   return;
