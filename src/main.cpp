@@ -347,7 +347,7 @@ void manualGiess(int ch)
   display.println("andere = nein");
   display.display();
 
-  delay(btnDelay);
+  delay(2*btnDelay);
 
   long lastActivity;
   lastActivity = millis();
@@ -478,10 +478,11 @@ void statusDisplay(int gf, int ch)
     display.drawFastVLine(40, 10, 38, BLACK);
 
     // Blinking Title "Wasser" (in top box)
-    display.setTextColor(WHITE, BLACK);
+    if (blink_flag++ < 3) display.setTextColor(WHITE, BLACK);
+      else display.setTextColor(BLACK, WHITE);
     display.setCursor(17, 0);
-    if (blink_flag++ < 4) display.print(" WASSER ");
-    blink_flag %= 6;
+    display.print(" WASSER ");
+    blink_flag %= 5;
 
     // Print current volume (in box bottom right)
     display.setTextColor(BLACK, WHITE);
