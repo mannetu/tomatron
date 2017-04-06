@@ -345,21 +345,23 @@ void manualGiess(int ch)
 
   // Show instructions on display
   display.clearDisplay();
-  display.setCursor(0,0);
-  display.println("Menge als");
-  display.println("neuen Wert");
-  display.println("uebernehmen ?");
-  display.println("+ Taste = ja");
-  display.println("andere = nein");
+  display.setCursor(14,6);
+  display.print(valve[ch].getPlantName());
+  display.setCursor(44,6);
+  display.print(flow.getVolume(), 0); display.println(" L");
+  display.setCursor(0,17);
+  display.println("  Neue Menge ");
+  display.println(" uebernehmen?");
+  display.setCursor(0,36);
+  display.println("    + = ja");
   display.display();
 
-  delay(2*btnDelay);
+  delay(3*btnDelay);
 
   long lastActivity;
   lastActivity = millis();
 
-  while (digitalRead(pinDownBtn) != 0 && digitalRead(pinEnterBtn) != 0 &&
-          digitalRead(pinManualBtn) != 0)
+  while (digitalRead(pinDownBtn) != 0 && digitalRead(pinEnterBtn) != 0 && digitalRead(pinManualBtn) != 0)
   {
     if (digitalRead(pinUpBtn) == 0)
     {
@@ -589,6 +591,72 @@ void setParameters()
   delay(2 * btnDelay);
   lastActivity = millis();
 
+  // Set Timer
+  while (digitalRead(pinEnterBtn))
+  {
+    int menuEscapeFlag = 0;
+    if (digitalRead(pinUpBtn) == 0)
+    {
+      giess.time += 60;
+      if (timer == OFF)
+      {
+        menuEscapeFlag = 1;
+        if (giess.flag == CTRL_ACT)
+        {
+          valve[giess.flag].close();
+          pump.stop();
+          flow.resetFlowMeter();
+          giess.flag = CTRL_IDLE;
+        }
+        else giess.flag = CTRL_ACT; // Manual start of giessing
+      }
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinDownBtn) == 0)
+    {
+      giess.time -= 60;
+      lastActivity = millis();
+      wdt_reset();
+      if (timer == OFF)
+        {
+          menuEscapeFlag = 1;
+          if (giess.flag == CTRL_ACT)
+          {
+            valve[giess.flag].close();
+            pump.stop();
+            flow.resetFlowMeter();
+            giess.flag = CTRL_IDLE;
+          }
+          else giess.flag = CTRL_ACT; // Manual start of giessing
+        }
+      delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinManualBtn) == 0)
+    {
+      lastActivity = millis();
+      wdt_reset();
+      if (timer) timer = OFF; else timer = ON;
+      delay(btnDelay);
+    }
+
+    statusDisplay(-2, -1);  // Update display
+
+    // If not button was pressed for 5s save changes and return
+    if (millis() - lastActivity > 5000 || menuEscapeFlag == 1) {
+      writeParameters();
+      return;
+    }
+    wdt_reset();
+  }
+
+  delay(btnDelay);
+  lastActivity = millis();
+  wdt_reset();
+
   // Set target volumes
   while (channel < CHANNEL)
   {
@@ -642,58 +710,6 @@ void setParameters()
 
   delay(btnDelay);
   lastActivity = millis();
-
-  // Set Timer
-  while (digitalRead(pinEnterBtn))
-  {
-    int escapeFlag = 0;
-    if (digitalRead(pinUpBtn) == 0)
-    {
-      giess.time += 60;
-      if (timer == OFF)
-      {
-        escapeFlag = 1;
-        giess.flag = CTRL_ACT; // Manual start of giessing
-      }
-      lastActivity = millis();
-      wdt_reset();
-      delay(btnDelay/5);
-    }
-
-    if (digitalRead(pinDownBtn) == 0)
-    {
-      giess.time -= 60;
-      lastActivity = millis();
-      wdt_reset();
-      if (timer == OFF)
-        {
-          escapeFlag = 1;
-          giess.flag = CTRL_ACT; // Manual start of giessing
-        }
-      delay(btnDelay/5);
-    }
-
-    if (digitalRead(pinManualBtn) == 0)
-    {
-      lastActivity = millis();
-      wdt_reset();
-      if (timer) timer = OFF; else timer = ON;
-      delay(btnDelay);
-    }
-
-    statusDisplay(-2, -1);  // Update display
-
-    // If not button was pressed for 5s save changes and return
-    if (millis() - lastActivity > 5000 || escapeFlag == 1) {
-      writeParameters();
-      return;
-    }
-    wdt_reset();
-  }
-
-  delay(btnDelay);
-  lastActivity = millis();
-  wdt_reset();
 
   // Set ThermoCoeff
   while (digitalRead(pinEnterBtn))
