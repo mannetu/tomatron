@@ -434,11 +434,12 @@ void statusDisplay(int gf, int ch)
     display.print("C");
 
     // Print giess time
-    display.setCursor(46, 0);
+    display.setCursor(44, 0);
     if (timer == ON)
     {
       if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
-      display.print("T");
+      display.print("T ");
+      display.setCursor(52, 0);
       if(hour(giess.time) < 10) display.print(' ');
       display.print(hour(giess.time));
       display.print(":");
