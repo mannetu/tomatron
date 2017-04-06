@@ -92,7 +92,7 @@ volatile boolean alarmIsrWasCalled = true;
 
 int   checkGiessen(void);
 void  giessRoutine(void);
-void   manualGiess(int);
+void  manualGiess(int);
 void  statusDisplay(int, int);
 
 void  interruptPulse(void);
@@ -449,7 +449,7 @@ void statusDisplay(int gf, int ch)
     else
     {
       if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
-      display.print("T off");
+      display.print("T aus");
       display.setTextColor(BLACK, WHITE);
     }
 
@@ -645,9 +645,15 @@ void setParameters()
   // Set Timer
   while (digitalRead(pinEnterBtn))
   {
+    int escapeFlag = 0;
     if (digitalRead(pinUpBtn) == 0)
     {
       giess.time += 60;
+      if (timer == OFF)
+      {
+        escapeFlag = 1;
+        giess.flag = CTRL_ACT; // Manual start of giessing
+      }
       lastActivity = millis();
       wdt_reset();
       delay(btnDelay/5);
@@ -658,21 +664,26 @@ void setParameters()
       giess.time -= 60;
       lastActivity = millis();
       wdt_reset();
+      if (timer == OFF)
+        {
+          escapeFlag = 1;
+          giess.flag = CTRL_ACT; // Manual start of giessing
+        }
       delay(btnDelay/5);
     }
 
     if (digitalRead(pinManualBtn) == 0)
     {
-      if (timer) timer = OFF; else timer = ON;
       lastActivity = millis();
       wdt_reset();
+      if (timer) timer = OFF; else timer = ON;
       delay(btnDelay);
     }
 
     statusDisplay(-2, -1);  // Update display
 
     // If not button was pressed for 5s save changes and return
-    if (millis() - lastActivity > 5000) {
+    if (millis() - lastActivity > 5000 || escapeFlag == 1) {
       writeParameters();
       return;
     }
