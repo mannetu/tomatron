@@ -31,6 +31,11 @@ enum giessFlag {
   CTRL_ACT = 0  // 1, 2, 3
 };
 
+enum timerFlag {
+  OFF,
+  ON
+} timer;
+
 struct s_giess {
   int flag = -1;
   long lastCall = 0;
@@ -171,6 +176,7 @@ void setup()
 
   // Initialize GiessFlag
   giess.flag = CTRL_IDLE;
+  timer = OFF;
 
   // Read calibration factor from EEPROM
   int cf;
@@ -236,7 +242,7 @@ void loop()
   }
 
   // Check if it is time for giessing */
-  if (giess.flag == CTRL_IDLE)
+  if (timer == ON && giess.flag == CTRL_IDLE)
   {
     giess.flag = checkGiessen();
   }
@@ -378,6 +384,8 @@ void statusDisplay(int gf, int ch)
   static byte blink_flag = 1;
   display.clearDisplay();
   display.setCursor(0, 0);
+  // Draw Point to indicate sleep mode
+  if (gf == CTRL_SLEEP) display.drawPixel(3, 3, BLACK);
 
   //---------------------------------------------------
   // Display if nothing is active or parameter set mode
@@ -427,18 +435,23 @@ void statusDisplay(int gf, int ch)
 
     // Print giess time
     display.setCursor(46, 0);
-    if (gf == -3) {
-      display.print("G");
-    } else {
-      display.print(">");
+    if (timer == ON)
+    {
+      if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
+      display.print("T");
+      if(hour(giess.time) < 10) display.print(' ');
+      display.print(hour(giess.time));
+      display.print(":");
+      if(minute(giess.time) < 10) display.print('0');
+      display.print(minute(giess.time));
+      display.setTextColor(BLACK, WHITE);
     }
-    if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
-    if(hour(giess.time) < 10) display.print(' ');
-    display.print(hour(giess.time));
-    display.print(":");
-    if(minute(giess.time) < 10) display.print('0');
-    display.print(minute(giess.time));
-    display.setTextColor(BLACK, WHITE);
+    else
+    {
+      if (gf == -2 && ch == -1) display.setTextColor(WHITE, BLACK);
+      display.print("T off");
+      display.setTextColor(BLACK, WHITE);
+    }
 
     // Print channel left column
     for (int i = 0; i < 4; i++)
@@ -646,6 +659,14 @@ void setParameters()
       lastActivity = millis();
       wdt_reset();
       delay(btnDelay/5);
+    }
+
+    if (digitalRead(pinManualBtn) == 0)
+    {
+      if (timer) timer = OFF; else timer = ON;
+      lastActivity = millis();
+      wdt_reset();
+      delay(btnDelay);
     }
 
     statusDisplay(-2, -1);  // Update display
