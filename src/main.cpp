@@ -26,9 +26,9 @@
 // Giessflag
 enum giessFlag {
   CTRL_SLEEP = -3,
-  CTRL_SET = -2,
-  CTRL_IDLE = -1,
-  CTRL_ACT = 0  // 1, 2, 3
+  CTRL_SET   = -2,
+  CTRL_IDLE  = -1,
+  CTRL_ACT   =  0  // 1, 2, 3
 };
 
 enum timerFlag {
@@ -37,8 +37,8 @@ enum timerFlag {
 } timer;
 
 struct s_giess {
-  int flag = -1;
-  long lastCall = 0;
+  int    flag     = -1;
+  long   lastCall =  0;
   time_t time;
 } giess;
 
@@ -71,11 +71,12 @@ unsigned int btnDelay =   200; // Debounce delay
 //---------------------------------------------------------
 Flowmeter flow(3); // Interupt 1 -> Pin 3 must not be changed! // ATmega pin 5
 
-Magnetvalves valve[CHANNEL] = {  // 8 characters max.
-  Magnetvalves(5,   "Tom1  "),  // ATmega pin 11
-  Magnetvalves(6,   "Tom2  "),  // ATmega pin 12
-  Magnetvalves(7,   "Tom3  "),  // ATmega pin 13
-  Magnetvalves(8,   "Pap1  "),  // ATmega pin 14
+Magnetvalves valve[CHANNEL] =
+{  // 8 characters max.
+  Magnetvalves(5,  "Tom1  "),  // ATmega pin 11
+  Magnetvalves(6,  "Tom2  "),  // ATmega pin 12
+  Magnetvalves(7,  "Tom3  "),  // ATmega pin 13
+  Magnetvalves(8,  "Pap1  "),  // ATmega pin 14
   Magnetvalves(A1, "Pap2  "),  // ATmega pin 24
   Magnetvalves(A2, "Gur1  ")   // ATmega pin 25
 };
@@ -348,12 +349,13 @@ void manualGiess(int ch)
   display.setCursor(14,6);
   display.print(valve[ch].getPlantName());
   display.setCursor(44,6);
-  display.print(flow.getVolume(), 0); display.println(" L");
+  display.print(flow.getVolume(), 0);
+  display.println(" L");
   display.setCursor(0,17);
   display.println("  Neue Menge ");
   display.println(" uebernehmen?");
   display.setCursor(0,36);
-  display.println("    + = ja");
+  display.println("   +/- = ja");
   display.display();
 
   delay(3*btnDelay);
@@ -361,9 +363,9 @@ void manualGiess(int ch)
   long lastActivity;
   lastActivity = millis();
 
-  while (digitalRead(pinDownBtn) != 0 && digitalRead(pinEnterBtn) != 0 && digitalRead(pinManualBtn) != 0)
+  while (digitalRead(pinEnterBtn) != 0 && digitalRead(pinManualBtn) != 0)
   {
-    if (digitalRead(pinUpBtn) == 0)
+    if (digitalRead(pinUpBtn) == 0 || digitalRead(pinDownBtn) == 0)
     {
       valve[ch].setVolumeTarget(flow.getVolume());
       wdt_reset();
@@ -386,8 +388,6 @@ void statusDisplay(int gf, int ch)
   static byte blink_flag = 1;
   display.clearDisplay();
   display.setCursor(0, 0);
-  // Draw Point to indicate sleep mode
-  if (gf == CTRL_SLEEP) display.drawPixel(3, 3, BLACK);
 
   //---------------------------------------------------
   // Display if nothing is active or parameter set mode
@@ -396,6 +396,7 @@ void statusDisplay(int gf, int ch)
   {
     if (gf == -2 && ch == -2) display.setTextColor(WHITE, BLACK);
 
+    // Draw grid
     display.drawFastHLine(0, 9, 85, BLACK);
     display.drawFastHLine(41, 30, 43, BLACK);
     display.drawFastVLine(40, 0, 48, BLACK);
@@ -456,7 +457,7 @@ void statusDisplay(int gf, int ch)
       display.setTextColor(BLACK, WHITE);
     }
 
-    // Print channel left column
+    // Print channels, left column
     for (int i = 0; i < 4; i++)
     {
       display.setCursor(0, (8*i + 13));
@@ -468,7 +469,7 @@ void statusDisplay(int gf, int ch)
       display.setTextColor(BLACK, WHITE);
     }
 
-    // Print channel right column
+    // Print channels, right column
     for (int i = 4; i < CHANNEL; i++)
     {
       display.setCursor(44, (8*(i-4) + 13));
@@ -479,6 +480,7 @@ void statusDisplay(int gf, int ch)
       display.println(valve[i].readVolumeTarget());
       display.setTextColor(BLACK, WHITE);
     }
+
     display.display(); // show screen
     return;
   }
@@ -488,26 +490,26 @@ void statusDisplay(int gf, int ch)
 
   if (gf > -1)
   {
-    // Divide display in boxes
-    display.drawFastHLine(0, 9, 85, BLACK);
-    display.drawFastHLine(41, 30, 43, BLACK);
-    display.drawFastVLine(40, 10, 38, BLACK);
+    // Draw grid
+    display.drawFastHLine( 0, 9,85, BLACK);
+    display.drawFastHLine(41,30,43, BLACK);
+    display.drawFastVLine(40,10,38, BLACK);
 
-    // Blinking Title "Wasser" (in top box)
+    // Blinking title (top box)
     if (blink_flag++ < 3) display.setTextColor(WHITE, BLACK);
-      else display.setTextColor(BLACK, WHITE);
-    display.setCursor(17, 0);
+    else display.setTextColor(BLACK, WHITE);
+    display.setCursor(17,0);
     display.print(" WASSER ");
     blink_flag %= 5;
 
-    // Print current volume (in box bottom right)
+    // Current volume (box bottom right)
     display.setTextColor(BLACK, WHITE);
-    display.setCursor(45, 36);
+    display.setCursor(45,36);
     if (valve[gf].readCurrentVolume() < 10) display.print(" ");
     display.print(valve[gf].readCurrentVolume(), 1);
     display.print(" L");
 
-    // Left column
+    // Channels, left column
     for (int i = 0; i < 4; i++)
     {
       if (i == gf) // Display active channel
@@ -534,7 +536,7 @@ void statusDisplay(int gf, int ch)
       }
     }
 
-    // Right column
+    // Channels, right column
     for (int i = 4; i < CHANNEL; i++)
     {
       if (i == gf) // Display active channel
@@ -560,6 +562,7 @@ void statusDisplay(int gf, int ch)
         display.println(round(valve[i].readVolumeTarget() * thermo.GetGiessFactor()));
       }
     }
+
     display.display(); // show screen
     return;
   }
@@ -591,7 +594,7 @@ void setParameters()
   delay(2 * btnDelay);
   lastActivity = millis();
 
-  // Set Timer
+  // Adjust giesstime and switch on/off timer
   while (digitalRead(pinEnterBtn))
   {
     int menuEscapeFlag = 0;
@@ -646,7 +649,8 @@ void setParameters()
     statusDisplay(-2, -1);  // Update display
 
     // If not button was pressed for 5s save changes and return
-    if (millis() - lastActivity > 5000 || menuEscapeFlag == 1) {
+    if (millis() - lastActivity > 5000 || menuEscapeFlag == 1)
+    {
       writeParameters();
       return;
     }
@@ -733,7 +737,8 @@ void setParameters()
     statusDisplay(-2, -3);   // Update display
 
     // If not button was pressed for 5s save changes and return
-    if (millis() - lastActivity > 5000) {
+    if (millis() - lastActivity > 5000)
+    {
       writeParameters();
       return;
     }
@@ -881,6 +886,7 @@ void calibration()
     calibrationDoseDisplay(valve[0].readCurrentVolume());
   }
   pump.stop();
+  delay(500);
   // Adjust exact volume with Up/Down-Buttons and press Enter
   calibrationDisplay(double(valve[0].readCurrentVolume()));
   vol = double(valve[0].readCurrentVolume());

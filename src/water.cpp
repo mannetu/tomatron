@@ -10,8 +10,8 @@ void interuptPulse();
 
 Flowmeter::Flowmeter(byte pin) // Constructor
 {
-    m_pin = pin;
-    pinMode(m_pin, INPUT);
+  m_pin = pin;
+  pinMode(m_pin, INPUT);
 }
 
 void Flowmeter::setCalibrationFactor(int calibrationFactor)
@@ -57,10 +57,7 @@ Pump::Pump(byte pin)
 
 int Pump::start(void)
 {
-  if (digitalRead(m_pin))
-  {
-    return 0;
-  }
+  if (digitalRead(m_pin)) return 0;
   digitalWrite(m_pin, HIGH);
   return 1;
 }
@@ -122,7 +119,6 @@ int Magnetvalves::dosing(void)
     dosingFlag = WATER_IDLE;
     return 0;
   }
-
   return -1;
 }
 
@@ -147,10 +143,7 @@ int Magnetvalves::dosing(float vol)
     return 1;
   }
 
-  if ((dosingFlag == WATER_BSY) && (m_currentVolume < vol))
-  {
-    return 1;
-  }
+  if ((dosingFlag == WATER_BSY) && (m_currentVolume < vol)) return 1;
 
   if ((dosingFlag == WATER_BSY) && (m_currentVolume > vol))
   {
@@ -158,7 +151,6 @@ int Magnetvalves::dosing(float vol)
     dosingFlag = WATER_IDLE;
     return 0;
   }
-
   return -1;
 }
 
@@ -174,7 +166,7 @@ float Magnetvalves::readCurrentVolume(void)
 
 void Magnetvalves::setGiessFactor(float giessFactor)
 {
-  m_giessFactor =  giessFactor;
+  m_giessFactor = giessFactor;
 }
 
 
@@ -202,10 +194,7 @@ float Thermocontrol::GetTempAverage()
   {
     return (m_tempAddition / float(m_numberOfTempReadings));
   }
-  else
-  {
-  return -1;
-  }
+  else return -1;
 };
 
 void Thermocontrol::ResetAverage()
@@ -221,10 +210,7 @@ float Thermocontrol::GetGiessFactor()
     return pow(m_tempCoeff,
       (((m_tempAddition / m_numberOfTempReadings) / 20) - 1));
   }
-  else
-  {
-  return 1;
-  }
+  else return 1;
 }
 
 void Thermocontrol::SetTempCoeff(float tempCoeff)
